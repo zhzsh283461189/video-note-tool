@@ -1,0 +1,880 @@
+/* ========== 截图标注界面样式（重新美化） ========== */
+
+/* 标注界面容器（全屏覆盖） */
+.biaoZhuJieMian {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    width: 100vw;
+    height: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    z-index: 9999;
+    display: none;
+    flex-direction: row;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+    overflow: hidden !important;
+}
+
+.biaoZhuJieMian.xianShi {
+    display: flex !important;
+}
+
+/* 手机竖屏模式 */
+.biaoZhuJieMian.shuPing {
+    flex-direction: column !important;
+    height: 100vh !important;
+}
+
+.biaoZhuJieMian.shuPing .biaoZhuHuaBuRongQi {
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: calc(100vh - 210px) !important;
+    max-height: calc(100vh - 210px) !important;
+    padding: 10px !important;
+    overflow: hidden !important;
+}
+
+.biaoZhuJieMian.shuPing .biaoZhuGongJuLan {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 210px !important;
+    min-height: 210px !important;
+    max-height: 210px !important;
+    border-left: none !important;
+    border-top: 2px solid rgba(255, 255, 255, 0.2) !important;
+    padding: 4px 85px 4px !important;
+    gap: 4px !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 1000 !important;
+    background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%) !important;
+}
+
+/* 竖屏模式下，所有工具组横向排列 */
+.biaoZhuJieMian.shuPing .gongJuZu {
+    flex-direction: row !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    gap: 6px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
+}
+
+/* 竖屏第1行：形状工具（3个按钮） */
+.biaoZhuJieMian.shuPing .gongJuZuXingZhuang {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* 竖屏第2行：线条粗细（3个按钮） */
+.biaoZhuJieMian.shuPing .gongJuZuCuXi {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* 第1-2行按钮统一大小：3个按钮一行 */
+.biaoZhuJieMian.shuPing .gongJuZuXingZhuang .gongJuAnNiu,
+.biaoZhuJieMian.shuPing .gongJuZuCuXi .cuXiAnNiu {
+    width: calc((100% - 12px) / 3) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 12px) / 3) !important;
+    height: 30px !important;
+    font-size: 13px !important;
+    flex: 0 0 calc((100% - 12px) / 3) !important;
+    border-radius: 5px !important;
+    padding: 0 !important;
+}
+
+/* 竖屏第3行：文字工具及字体大小（4个按钮） */
+.biaoZhuJieMian.shuPing .gongJuZuWenZi {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* 第3行按钮大小调整：4个按钮一行 */
+.biaoZhuJieMian.shuPing .gongJuZuWenZi .gongJuAnNiu,
+.biaoZhuJieMian.shuPing .gongJuZuWenZi .ziTiDaXiaoAnNiu {
+    width: calc((100% - 18px) / 4) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 18px) / 4) !important;
+    height: 30px !important;
+    font-size: 13px !important;
+    flex: 0 0 calc((100% - 18px) / 4) !important;
+    border-radius: 5px !important;
+    padding: 0 !important;
+}
+
+/* 竖屏第4行：移动工具和撤销（2个按钮） */
+.biaoZhuJieMian.shuPing .gongJuZuCaoZuoGongJu {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* 第4行按钮大小调整：2个按钮一行 */
+.biaoZhuJieMian.shuPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
+    width: calc((100% - 6px) / 2) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 6px) / 2) !important;
+    height: 30px !important;
+    font-size: 16px !important;
+    flex: 0 0 calc((100% - 6px) / 2) !important;
+    border-radius: 5px !important;
+    padding: 0 !important;
+}
+
+/* 竖屏第5行：颜色按钮（5个） */
+.biaoZhuJieMian.shuPing .yanSeZu1 {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+}
+
+/* 第5行颜色按钮大小调整：5个按钮一行 */
+.biaoZhuJieMian.shuPing .yanSeZu1 .yanSeDian {
+    width: calc((100% - 24px) / 5) !important;
+    min-width: 0 !important;
+    max-width: calc((100% - 24px) / 5) !important;
+    height: 30px !important;
+    border-width: 2px !important;
+    flex: 0 0 calc((100% - 24px) / 5) !important;
+}
+
+/* 竖屏模式：隐藏横屏专用颜色（青、紫、灰） */
+.biaoZhuJieMian.shuPing .hengPingYanSe {
+    display: none !important;
+}
+
+/* 竖屏第6行：操作按钮 */
+.biaoZhuJieMian.shuPing .gongJuZuCaoZuo {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    margin-top: 0 !important;
+}
+
+/* 竖屏模式下，操作按钮统一调整 */
+.biaoZhuJieMian.shuPing .caoZuoAnNiu {
+    padding: 8px 0 !important;
+    font-size: 13px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: calc((100% - 6px) / 2) !important;
+    flex: 0 0 calc((100% - 6px) / 2) !important;
+    white-space: nowrap !important;
+    border-radius: 6px !important;
+    height: 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* 手机横屏模式 */
+.biaoZhuJieMian.hengPing {
+    flex-direction: row !important;
+}
+
+.biaoZhuJieMian.hengPing .biaoZhuHuaBuRongQi {
+    width: calc(100vw - 140px) !important;
+    max-width: calc(100vw - 140px) !important;
+    flex: 0 0 calc(100vw - 140px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    height: -webkit-fill-available !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+}
+
+.biaoZhuJieMian.hengPing .biaoZhuGongJuLan {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    flex-direction: column !important;
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-left: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-top: none !important;
+    padding: 8px 8px 6px !important;
+    gap: 6px !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    z-index: 1000 !important;
+    background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%) !important;
+}
+
+/* 横屏模式下，所有工具组横向排列（每行一个组） */
+.biaoZhuJieMian.hengPing .gongJuZu {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    border: none !important;
+    padding: 0 !important;
+    gap: 6px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+}
+
+/* 横屏第1行：形状工具 */
+.biaoZhuJieMian.hengPing .gongJuZuXingZhuang {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 5px !important;
+}
+
+/* 横屏第2行：线条粗细 */
+.biaoZhuJieMian.hengPing .gongJuZuCuXi {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 5px !important;
+}
+
+/* 横屏第3行：文字工具及字体大小 */
+.biaoZhuJieMian.hengPing .gongJuZuWenZi {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 2px 0 !important;
+}
+
+/* 横屏第4行：移动工具和撤销 */
+.biaoZhuJieMian.hengPing .gongJuZuCaoZuoGongJu {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+/* 第四行按钮高度减半 */
+.biaoZhuJieMian.hengPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
+    aspect-ratio: 2 / 1 !important;
+}
+
+/* 横屏第5-6行：颜色按钮（8个分两行显示） */
+.biaoZhuJieMian.hengPing .yanSeZu1 {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+}
+
+/* 横屏模式：显示所有8个颜色，自动换行成两行（每行4个） */
+.biaoZhuJieMian.hengPing .hengPingYanSe {
+    display: block !important;
+}
+
+/* 颜色按钮强制换行：每4个一行 */
+.biaoZhuJieMian.hengPing .yanSeZu1 .yanSeDian:nth-child(4n+1) {
+    clear: left !important;
+}
+
+/* 横屏第7行：操作按钮 */
+.biaoZhuJieMian.hengPing .gongJuZuCaoZuo {
+    margin-top: 3px !important;
+    padding-top: 5px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+    flex-shrink: 0 !important;
+    gap: 5px !important;
+}
+
+.biaoZhuJieMian.hengPing .gongJuAnNiu {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    font-size: clamp(14px, 3.5vw, 18px) !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border-radius: 8px !important;
+    flex: 1 !important;
+}
+
+/* 第1-2行（3个按钮）：调整为与第5行（4个颜色按钮）高度一致 */
+.biaoZhuJieMian.hengPing .gongJuZuXingZhuang .gongJuAnNiu,
+.biaoZhuJieMian.hengPing .gongJuZuCuXi .cuXiAnNiu {
+    aspect-ratio: 1.33 / 1 !important;
+}
+
+/* 第3行（4个按钮）：保持与第5行一致 */
+.biaoZhuJieMian.hengPing .gongJuZuWenZi .gongJuAnNiu,
+.biaoZhuJieMian.hengPing .gongJuZuWenZi .ziTiDaXiaoAnNiu {
+    aspect-ratio: 1 / 1 !important;
+    font-size: clamp(13px, 3vw, 16px) !important;
+    padding: 0 2px !important;
+}
+
+/* 第4行（2个按钮）：调整为与第5行（4个颜色按钮）高度一致 */
+.biaoZhuJieMian.hengPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
+    aspect-ratio: 2 / 1 !important;
+}
+
+.biaoZhuJieMian.hengPing .yanSeDian {
+    width: calc(25% - 5px) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    min-width: 0 !important;
+    max-width: calc(25% - 5px) !important;
+    border-width: 2px !important;
+    flex: 0 0 calc(25% - 5px) !important;
+}
+
+/* 横屏模式：统一粗细和字体大小按钮尺寸 */
+.biaoZhuJieMian.hengPing .cuXiAnNiu,
+.biaoZhuJieMian.hengPing .ziTiDaXiaoAnNiu {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    font-size: clamp(14px, 3.5vw, 18px) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex: 1 !important;
+}
+
+/* 第三行的字体大小按钮特殊处理 */
+.biaoZhuJieMian.hengPing .gongJuZuWenZi .ziTiDaXiaoAnNiu {
+    font-size: clamp(13px, 3vw, 16px) !important;
+}
+
+.biaoZhuJieMian.hengPing .caoZuoAnNiu {
+    padding: 8px 4px !important;
+    font-size: clamp(11px, 2.5vw, 13px) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    white-space: nowrap !important;
+    border-radius: 8px !important;
+    height: auto !important;
+    aspect-ratio: 2 / 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+}
+
+/* 画布容器（占据大部分空间） */
+.biaoZhuHuaBuRongQi {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    overflow: auto; /* 允许滚动，防止内容溢出 */
+    position: relative;
+    padding: 2px;
+    min-height: 0; /* 关键：允许flex子项缩小 */
+    min-width: 0;  /* 关键：允许flex子项缩小 */
+}
+
+/* 标注画布 */
+#biaoZhuCanvas {
+    display: block;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    cursor: crosshair;
+    background: white;
+    border-radius: 8px;
+    /* 画布尺寸由 JavaScript 动态设置，不使用 CSS 限制 */
+    transform: rotate(0deg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* 高质量渲染 */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+#biaoZhuCanvas:hover {
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+}
+
+/* 工具栏 - 右侧竖向（桌面端） */
+.biaoZhuGongJuLan {
+    background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
+    width: 140px;
+    flex-shrink: 0;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+/* 工具按钮组 */
+.gongJuZu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    align-items: center;
+}
+
+.gongJuZu:last-child {
+    border-bottom: none;
+}
+
+/* 工具按钮 - 现代化样式 */
+.gongJuAnNiu {
+    width: 48px;
+    height: 48px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.gongJuAnNiu:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.gongJuAnNiu.huoZhong {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.gongJuAnNiu:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.1s ease;
+}
+
+/* 颜色选择器 */
+.yanSeXuanZeQi {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.yanSeDian {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.yanSeDian::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: inherit;
+    opacity: 0.3;
+    transition: transform 0.3s ease;
+}
+
+.yanSeDian:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.yanSeDian:hover::before {
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.yanSeDian.huoZhong {
+    border-color: white;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 操作按钮 - 渐变效果 */
+.caoZuoAnNiu {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.caoZuoAnNiu.quXiao {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.caoZuoAnNiu.quXiao:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+}
+
+.caoZuoAnNiu.wanCheng {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.caoZuoAnNiu.wanCheng:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.caoZuoAnNiu:active {
+    transform: scale(0.95);
+}
+
+/* 线条粗细/字体大小选择器 */
+.cuXiXuanZeQi {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+}
+
+/* 粗细按钮 */
+.cuXiAnNiu {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 10px !important;
+    color: white !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    user-select: none !important;
+}
+
+.cuXiAnNiu:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.cuXiAnNiu.huoZhong {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border-color: #667eea !important;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4) !important;
+}
+
+.cuXiAnNiu:active {
+    transform: scale(0.95) !important;
+}
+
+/* 字体大小按钮 */
+.ziTiDaXiaoAnNiu {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 10px !important;
+    color: white !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    user-select: none !important;
+}
+
+.ziTiDaXiaoAnNiu:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.ziTiDaXiaoAnNiu.huoZhong {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    border-color: #f093fb !important;
+    box-shadow: 0 4px 16px rgba(240, 147, 251, 0.4) !important;
+}
+
+.ziTiDaXiaoAnNiu:active {
+    transform: scale(0.95) !important;
+}
+
+/* 提示信息 - 毛玻璃效果 */
+.biaoZhuTiShi {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+}
+
+/* 文字输入框（用于文字标注） */
+.wenZiShuRuKuang {
+    position: fixed;
+    background: white;
+    border: 2px solid #1890ff;
+    padding: 8px 12px;
+    font-size: 16px;
+    outline: none;
+    min-width: 150px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+}
+
+/* 手机竖屏模式（底部横向排列） */
+@media (max-width: 768px) and (orientation: portrait) {
+    .biaoZhuJieMian {
+        flex-direction: column;
+    }
+
+    .biaoZhuHuaBuRongQi {
+        flex: 1;
+        padding: 10px;
+        min-height: 0; /* 允许压缩 */
+    }
+
+    /* 画布正常显示 */
+    #biaoZhuCanvas {
+        transform: rotate(0deg);
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    /* 工具栏在底部横向排列 */
+    .biaoZhuGongJuLan {
+        position: relative;
+        width: 100%;
+        height: auto;
+        flex-direction: row; /* 横向排列 */
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px 8px;
+        gap: 8px;
+        justify-content: space-around;
+        border-radius: 0;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+        transform: none;
+        flex-shrink: 0; /* 不允许压缩工具栏 */
+        z-index: 100; /* 确保工具栏在最上层 */
+    }
+
+    /* 每个工具组横向排列 */
+    .gongJuZu {
+        flex-direction: row;
+        width: auto;
+        border: none;
+        padding: 0;
+        gap: 6px;
+        align-items: center;
+    }
+
+    /* 颜色选择器横向排列 */
+    .yanSeXuanZeQi {
+        flex-direction: row;
+    }
+
+    /* 调整按钮大小 */
+    .gongJuAnNiu {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
+
+    .yanSeDian {
+        width: 30px;
+        height: 30px;
+    }
+
+    /* 操作按钮样式调整 */
+    .caoZuoAnNiu {
+        padding: 10px 8px;
+        font-size: 12px;
+        width: 100%;
+        min-width: 55px;
+    }
+
+    .biaoZhuTiShi {
+        font-size: 12px;
+        padding: 8px 16px;
+        top: 15px;
+        left: 15px;
+    }
+}
+
+/* 手机横屏模式（系统自动旋转） */
+@media (max-width: 768px) and (orientation: landscape) {
+    .biaoZhuJieMian {
+        flex-direction: row; /* 横屏时使用左右布局 */
+    }
+
+    .biaoZhuHuaBuRongQi {
+        padding: 10px;
+        flex: 1;
+        min-height: 0; /* 允许压缩 */
+        min-width: 0; /* 允许压缩 */
+    }
+
+    /* 画布正常显示 */
+    #biaoZhuCanvas {
+        transform: rotate(0deg);
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    /* 工具栏在右侧竖向排列 */
+    .biaoZhuGongJuLan {
+        position: relative;
+        width: 100px;
+        height: 100%;
+        flex-direction: column; /* 竖向排列 */
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: none;
+        padding: 10px 5px;
+        gap: 10px;
+        justify-content: center;
+        border-radius: 0;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+        transform: none;
+        flex-shrink: 0; /* 不允许压缩工具栏 */
+        z-index: 100; /* 确保工具栏在最上层 */
+    }
+
+    /* 每个工具组竖向排列 */
+    .gongJuZu {
+        flex-direction: column;
+        width: 100%;
+        border: none;
+        padding: 8px 0;
+        gap: 8px;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .gongJuZu:last-child {
+        border-bottom: none;
+    }
+
+    /* 颜色选择器竖向排列 */
+    .yanSeXuanZeQi {
+        flex-direction: column;
+    }
+
+    /* 调整按钮大小（横屏时稍小） */
+    .gongJuAnNiu {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .yanSeDian {
+        width: 26px;
+        height: 26px;
+    }
+
+    /* 操作按钮样式调整 */
+    .caoZuoAnNiu {
+        padding: 8px 5px;
+        font-size: 11px;
+        width: 100%;
+        min-width: 50px;
+    }
+
+    .biaoZhuTiShi {
+        font-size: 11px;
+        padding: 6px 12px;
+        top: 10px;
+        left: 10px;
+    }
+}
+
+/* 桌面端适配（保持左右布局） */
+@media (min-width: 769px) {
+    .biaoZhuJieMian {
+        flex-direction: row;
+    }
+
+    .biaoZhuGongJuLan {
+        flex-direction: column;
+        width: 140px;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: none;
+    }
+
+    /* 桌面端也使用7行布局 */
+    .gongJuZu {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        width: 100%;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: none;
+        padding: 8px 0;
+        gap: 6px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .yanSeXuanZeQi {
+        flex-direction: row;
+        flex-wrap: nowrap;
+    }
+}
