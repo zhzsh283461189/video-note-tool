@@ -20,6 +20,20 @@
         <source src="" type="video/mp4">
         您的浏览器不支持视频播放
     </video>
+    
+    <!-- 快进快退按钮 - 参考百度云播放器风格 -->
+    <button class="video-control-btn kuaiTui" onclick="kuaiTui5Miao()" disabled id="btnKuaiTui" title="快退5秒">
+        <svg class="btn-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V1L7 6L12 11V7C15.31 7 18 9.69 18 13C18 16.31 15.31 19 12 19C8.69 19 6 16.31 6 13H4C4 17.42 7.58 21 12 21C16.42 21 20 17.42 20 13C20 8.58 16.42 5 12 5Z" fill="currentColor"/>
+        </svg>
+        <span class="btn-number">5</span>
+    </button>
+    <button class="video-control-btn kuaiJin" onclick="kuaiJin5Miao()" disabled id="btnKuaiJin" title="快进5秒">
+        <svg class="btn-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V1L17 6L12 11V7C8.69 7 6 9.69 6 13C6 16.31 8.69 19 12 19C15.31 19 18 16.31 18 13H20C20 17.42 16.42 21 12 21C7.58 21 4 17.42 4 13C4 8.58 7.58 5 12 5Z" fill="currentColor"/>
+        </svg>
+        <span class="btn-number">5</span>
+    </button>
 </div>
 
 <!-- 操作按钮区域 -->

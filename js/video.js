@@ -57,6 +57,8 @@ function chuLiShiPinXuanZe(e) {
     document.getElementById('btnJieTu').disabled = false;
     document.getElementById('btnJieTuBiaoZhu').disabled = false;
     document.getElementById('btnShiJian').disabled = false;
+    document.getElementById('btnKuaiTui').disabled = false;
+    document.getElementById('btnKuaiJin').disabled = false;
 
     // 显示提示
     xianShiTiShi('✓ 视频已加载');
@@ -72,7 +74,7 @@ function jieTu() {
 
     // 检查是否有视频
     if (!video.src || video.src === '') {
-        xianShiTiShi('⚠ 请先选择视频');
+        xianShiTiShi(' 请先选择视频');
         return;
     }
     
@@ -80,6 +82,12 @@ function jieTu() {
     if (video.videoWidth === 0 || video.videoHeight === 0) {
         xianShiTiShi('⚠ 视频还未加载完成，请稍后再试');
         return;
+    }
+
+    // 先暂停视频播放
+    if (!video.paused) {
+        video.pause();
+        console.log('截图前已暂停视频');
     }
 
     try {
@@ -145,6 +153,12 @@ function jieTuBiaoZhu() {
         return;
     }
 
+    // 先暂停视频播放
+    if (!video.paused) {
+        video.pause();
+        console.log('标注前已暂停视频');
+    }
+
     try {
         // 创建画布元素
         var canvas = document.createElement('canvas');
@@ -167,6 +181,58 @@ function jieTuBiaoZhu() {
         console.error('截图失败：', error);
         xianShiTiShi('❌ 截图失败：' + error.message);
     }
+}
+
+/**
+ * 暂停视频播放（全局函数）
+ */
+function zanTingShiPin() {
+    var video = document.getElementById('videoPlayer');
+    
+    if (!video.src || video.src === '') {
+        return; // 没有视频，直接返回
+    }
+    
+    if (!video.paused) {
+        video.pause();
+        console.log('视频已暂停');
+    }
+}
+
+/**
+ * 快退5秒
+ */
+function kuaiTui5Miao() {
+    var video = document.getElementById('videoPlayer');
+
+    if (!video.src || video.src === '') {
+        xianShiTiShi('⚠ 请先选择视频');
+        return;
+    }
+
+    // 快退5秒
+    video.currentTime = Math.max(0, video.currentTime - 5);
+    
+    console.log('快退5秒，当前时间：', video.currentTime);
+    xianShiTiShi('⏪ 快退5秒');
+}
+
+/**
+ * 快进5秒
+ */
+function kuaiJin5Miao() {
+    var video = document.getElementById('videoPlayer');
+
+    if (!video.src || video.src === '') {
+        xianShiTiShi('⚠ 请先选择视频');
+        return;
+    }
+
+    // 快进5秒
+    video.currentTime = Math.min(video.duration, video.currentTime + 5);
+    
+    console.log('快进5秒，当前时间：', video.currentTime);
+    xianShiTiShi('⏩ 快进5秒');
 }
 
 /**

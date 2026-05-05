@@ -54,6 +54,9 @@ function bangDingShiJian() {
 
     // 3. 键盘快捷键监听
     document.addEventListener('keydown', chuLiJianPanAnJian);
+
+    // 4. 监听视频播放/暂停事件，智能管理编辑器焦点
+    bangDingShiPinBoFangShiJian();
 }
 
 /**
@@ -82,4 +85,44 @@ function chuLiJianPanAnJian(e) {
         e.preventDefault();
         cheXiaoBiaoZhu();
     }
+}
+
+/**
+ * 绑定视频播放事件
+ */
+function bangDingShiPinBoFangShiJian() {
+    var video = document.getElementById('videoPlayer');
+
+    // 视频开始播放时：收起软键盘并让编辑器失焦
+    video.addEventListener('play', function() {
+        console.log('视频开始播放，收起软键盘');
+        
+        // 1. 让编辑器失去焦点（收起软键盘）
+        if (bianJiQi) {
+            bianJiQi.blur();
+        }
+        
+        // 2. 主动触发输入框失焦（兼容移动端）
+        var activeElement = document.activeElement;
+        if (activeElement && activeElement.tagName === 'INPUT') {
+            activeElement.blur();
+        }
+        
+        // 3. 对于某些浏览器，需要额外处理
+        if (typeof document.activeElement !== 'undefined') {
+            document.activeElement.blur();
+        }
+        
+        // 4. 移动端特殊处理：滚动一下页面确保键盘收起
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            window.scrollTo(0, window.scrollY);
+        }
+        
+        console.log('软键盘已收起');
+    });
+
+    // 视频暂停时：不做特殊处理，用户可以继续编辑
+    video.addEventListener('pause', function() {
+        console.log('视频已暂停');
+    });
 }

@@ -33,6 +33,24 @@ function chuShiHuaBianJiQi() {
         }
     });
 
+    // 监听编辑器获得焦点事件，自动暂停视频
+    bianJiQi.on('selection-change', function(range) {
+        if (range) {
+            // 编辑器获得焦点（光标进入编辑区）
+            zanTingShiPin();
+            console.log('编辑器获得焦点，已暂停视频');
+        }
+    });
+
+    // 监听编辑器内容变化（用户开始输入）
+    bianJiQi.on('text-change', function(delta, oldDelta, source) {
+        if (source === 'user') {
+            // 用户手动编辑内容
+            zanTingShiPin();
+            console.log('检测到用户编辑，已暂停视频');
+        }
+    });
+
     console.log('Quill 编辑器初始化成功');
 }
 
