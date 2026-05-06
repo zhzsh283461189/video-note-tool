@@ -19,6 +19,43 @@ function xuanZeShiPin() {
 }
 
 /**
+ * 播放/暂停切换
+ */
+function boFangZanTing() {
+    var video = document.getElementById('videoPlayer');
+    
+    if (!video.src || video.src === '') {
+        xianShiTiShi('⚠ 请先选择视频');
+        return;
+    }
+    
+    if (video.paused) {
+        // 当前是暂停状态，开始播放
+        video.play();
+        gengXinBoFangAnNiu(true);
+        console.log('视频开始播放');
+    } else {
+        // 当前是播放状态，暂停
+        video.pause();
+        gengXinBoFangAnNiu(false);
+        console.log('视频已暂停');
+    }
+}
+
+/**
+ * 更新播放/暂停按钮显示
+ * @param {boolean} isPlaying - 是否正在播放
+ */
+function gengXinBoFangAnNiu(isPlaying) {
+    var btn = document.getElementById('btnBoFangZanTing');
+    if (isPlaying) {
+        btn.textContent = '⏸️ 暂停';
+    } else {
+        btn.textContent = '▶️ 播放';
+    }
+}
+
+/**
  * 处理视频文件选择
  * @param {Event} e - 文件选择事件
  */
@@ -59,6 +96,7 @@ function chuLiShiPinXuanZe(e) {
     document.getElementById('btnShiJian').disabled = false;
     document.getElementById('btnKuaiTui').disabled = false;
     document.getElementById('btnKuaiJin').disabled = false;
+    document.getElementById('btnBoFangZanTing').disabled = false;
 
     // 显示提示
     xianShiTiShi('✓ 视频已加载');

@@ -2,11 +2,11 @@
 
 /* 小屏幕适配（竖屏模式） */
 @media (max-width: 768px) and (orientation: portrait) {
-    /* 调整按钮区域布局 */
+    /* 调整按钮区域布局 - 允许换行 */
     .btn-area {
         padding: 4px 3px;
         gap: 3px;
-        flex-wrap: nowrap; /* 不允许换行，强制一行显示 */
+        flex-wrap: wrap; /* 允许换行，按钮太多时分两行显示 */
         justify-content: space-between; /* 均匀分布 */
     }
 
@@ -23,20 +23,20 @@
     }
 
     /* 手机竖屏模式：使用伪元素替换长文字为简短文字 */
-    /* 第3个按钮：截图标注 → 标注 */
-    .btn-area > button:nth-child(3) {
-        font-size: 0;
-    }
-    .btn-area > button:nth-child(3)::after {
-        content: '✏️ 标注';
-        font-size: 10px;
-    }
-
-    /* 第4个按钮：插入截图 → 贴图 */
+    /* 第4个按钮：截图标注 → 标注 */
     .btn-area > button:nth-child(4) {
         font-size: 0;
     }
     .btn-area > button:nth-child(4)::after {
+        content: '✏️ 标注';
+        font-size: 10px;
+    }
+
+    /* 第5个按钮：插入截图 → 贴图 */
+    .btn-area > button:nth-child(5) {
+        font-size: 0;
+    }
+    .btn-area > button:nth-child(5)::after {
         content: '📋 贴图';
         font-size: 10px;
     }
@@ -58,6 +58,24 @@
         padding: 6px 4px;
         font-size: 10px;
         min-width: 38px;
+    }
+    
+    /* 超小屏幕：第4个按钮：截图标注 → 标注 */
+    .btn-area > button:nth-child(4) {
+        font-size: 0;
+    }
+    .btn-area > button:nth-child(4)::after {
+        content: '✏️ 标注';
+        font-size: 10px;
+    }
+
+    /* 超小屏幕：第5个按钮：插入截图 → 贴图 */
+    .btn-area > button:nth-child(5) {
+        font-size: 0;
+    }
+    .btn-area > button:nth-child(5)::after {
+        content: '📋 贴图';
+        font-size: 10px;
     }
 }
 

@@ -118,11 +118,17 @@ function bangDingShiPinBoFangShiJian() {
             window.scrollTo(0, window.scrollY);
         }
         
+        // 5. 更新播放按钮状态
+        gengXinBoFangAnNiu(true);
+        
         console.log('软键盘已收起');
     });
 
     // 视频暂停时：不做特殊处理，用户可以继续编辑
     video.addEventListener('pause', function() {
         console.log('视频已暂停');
+        
+        // 更新播放按钮状态
+        gengXinBoFangAnNiu(false);
     });
 }
