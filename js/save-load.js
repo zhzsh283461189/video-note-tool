@@ -1,6 +1,7 @@
 /**
  * 保存/导入模块
  * 负责笔记的本地保存和导入恢复
+ * 使用 IndexedDB (localforage) 存储自动保存数据
  */
 
 // 全局变量：笔记数据
@@ -11,8 +12,15 @@ var biJiShuJu = {
     editorContent: ""   // 编辑器内容（HTML）
 };
 
-// 全局标志：是否已提示过笔记过大
-window.yiTiShiDaXiao = false;
+// IndexedDB 存储键名
+var AUTOSAVE_KEY = 'videoNoteAutosave';
+
+// 配置 localforage
+localforage.config({
+    name: 'VideoNoteTool',
+    storeName: 'autosave_store',
+    description: '视频笔记工具自动保存数据'
+});
 
 /**
  * 保存笔记到本地（下载JSON文件）
@@ -133,8 +141,8 @@ function chuLiJsonXuanZe(e) {
 }
 
 /**
- * 自动保存到 LocalStorage（每30秒）
- * 注意：这只是临时备份，不会生成文件
+ * 自动保存到 IndexedDB（每30秒）
+ * 使用 localforage 库，容量大，支持高清图片
  */
 function ziDongBaoCun() {
     // 获取编辑器内容
@@ -166,54 +174,25 @@ function ziDongBaoCun() {
     var beiFenShuJu = {
         videoName: dangQianShiPin.mingCheng,
         editorContent: htmlNeiRong,
-        saveTime: new Date().toLocaleString()
+        saveTime: new Date().toLocaleString(),
+        timestamp: Date.now()  // 用于判断是否超过30天
     };
 
-    // 转为JSON字符串
-    var jsonStr = JSON.stringify(beiFenShuJu);
-
     // 计算大小（单位：MB）
+    var jsonStr = JSON.stringify(beiFenShuJu);
     var daXiaoMB = (jsonStr.length / 1024 / 1024).toFixed(2);
 
     console.log('自动备份大小：', daXiaoMB, 'MB');
 
-    // 检查是否超过限制（LocalStorage 通常限制 5-10MB）
-    // 保守估计，使用4MB作为阈值
-    if (daXiaoMB > 4) {
-        // 超过 4MB，提示用户
-        console.warn('⚠ 笔记太大，无法自动保存');
-
-        // 只在第一次提示时显示（避免频繁弹窗）
-        if (!window.yiTiShiDaXiao) {
-            window.yiTiShiDaXiao = true;
-            xianShiTiShi('⚠ 笔记较大，建议手动保存');
-
-            // 30秒后重置提示标志（从1分钟改为30秒）
-            setTimeout(function() {
-                window.yiTiShiDaXiao = false;
-            }, 30000);
-        }
-
-        return; // 不保存到 LocalStorage
-    }
-
-    // 保存到 LocalStorage
-    try {
-        localStorage.setItem('videoNoteAutosave', jsonStr);
-        console.log('自动保存成功：', beiFenShuJu.saveTime, '大小：', daXiaoMB, 'MB');
-    } catch (error) {
-        console.error('自动保存失败：', error);
-
-        // 如果保存失败（可能是空间不足），提示用户
-        if (!window.yiTiShiDaXiao) {
-            window.yiTiShiDaXiao = true;
-            xianShiTiShi('⚠ 存储空间不足，请手动保存');
-
-            setTimeout(function() {
-                window.yiTiShiDaXiao = false;
-            }, 30000);
-        }
-    }
+    // 使用 localforage 保存到 IndexedDB
+    localforage.setItem(AUTOSAVE_KEY, beiFenShuJu)
+        .then(function() {
+            console.log('自动保存成功：', beiFenShuJu.saveTime, '大小：', daXiaoMB, 'MB');
+        })
+        .catch(function(error) {
+            console.error('自动保存失败：', error);
+            xianShiTiShi('⚠ 自动保存失败，请手动保存');
+        });
 }
 
 /**
@@ -230,20 +209,52 @@ function qiDongZiDongBaoCun() {
  * 检查是否有自动保存的数据
  */
 function jianChaZiDongBaoCun() {
-    var savedData = localStorage.getItem('videoNoteAutosave');
+    localforage.getItem(AUTOSAVE_KEY)
+        .then(function(shuJu) {
+            if (!shuJu) {
+                console.log('没有发现自动保存的笔记');
+                return;
+            }
 
-    if (savedData) {
-        try {
-            var shuJu = JSON.parse(savedData);
+            // 检查是否超过30天
+            var now = Date.now();
+            var sanShiTian = 30 * 24 * 60 * 60 * 1000; // 30天的毫秒数
+            var yiGuoQi = (now - shuJu.timestamp) > sanShiTian;
+
+            if (yiGuoQi) {
+                console.log('自动保存的笔记已超过30天，已清除');
+                qingChuZiDongBaoCun();
+                return;
+            }
 
             console.log('发现自动保存的笔记：', shuJu.saveTime);
 
+            // 计算距离上次保存的时间
+            var juLiShangCiBaoCun = now - shuJu.timestamp;
+            var tianShu = Math.floor(juLiShangCiBaoCun / (24 * 60 * 60 * 1000));
+            var xiaoShiShu = Math.floor(juLiShangCiBaoCun / (60 * 60 * 1000));
+
+            // 构建友好的提示信息
+            var tiShiXinXi = '📝 发现未保存的笔记\n';
+            
+            if (shuJu.videoName) {
+                tiShiXinXi += '视频：' + shuJu.videoName + '\n';
+            }
+            
+            tiShiXinXi += '保存时间：' + shuJu.saveTime + '\n';
+            
+            if (tianShu > 0) {
+                tiShiXinXi += '（' + tianShu + '天前）\n';
+            } else if (xiaoShiShu > 0) {
+                tiShiXinXi += '（' + xiaoShiShu + '小时前）\n';
+            } else {
+                tiShiXinXi += '（最近保存）\n';
+            }
+            
+            tiShiXinXi += '\n是否恢复？';
+
             // 询问用户是否恢复
-            var huiFu = confirm(
-                '检测到未保存的笔记\n' +
-                '保存时间：' + shuJu.saveTime + '\n\n' +
-                '是否恢复？'
-            );
+            var huiFu = confirm(tiShiXinXi);
 
             if (huiFu) {
                 // 用户选择确定：恢复编辑器内容
@@ -257,22 +268,25 @@ function jianChaZiDongBaoCun() {
                 xianShiTiShi('✓ 笔记已恢复');
                 console.log('用户选择恢复笔记');
             } else {
-                // 用户选择取消：清空自动保存的数据
-                qingChuZiDongBaoCun();
-                xianShiTiShi('✓ 已放弃恢复');
-                console.log('用户选择放弃恢复，已清除自动保存数据');
+                // 用户选择取消：保留自动保存的数据，不清除
+                xianShiTiShi('✓ 已跳过恢复，数据已保留');
+                console.log('用户选择放弃恢复，保留自动保存数据');
             }
-
-        } catch (error) {
-            console.error('恢复失败：', error);
-        }
-    }
+        })
+        .catch(function(error) {
+            console.error('检查自动保存失败：', error);
+        });
 }
 
 /**
  * 清除自动保存的数据（手动保存后调用）
  */
 function qingChuZiDongBaoCun() {
-    localStorage.removeItem('videoNoteAutosave');
-    console.log('自动保存数据已清除');
+    localforage.removeItem(AUTOSAVE_KEY)
+        .then(function() {
+            console.log('自动保存数据已清除');
+        })
+        .catch(function(error) {
+            console.error('清除自动保存数据失败：', error);
+        });
 }
