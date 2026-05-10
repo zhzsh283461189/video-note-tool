@@ -512,9 +512,25 @@ function panDuanBiaoZhuFanWei(biaoZhu, x, y) {
             return panDuanDianDaoXianDuanJuLi(x, y, biaoZhu.x1, biaoZhu.y1, biaoZhu.x2, biaoZhu.y2) <= panDuanJuLi;
             
         case 'text':
-            // 文字：判断是否在文字附近
-            return Math.abs(x - biaoZhu.x) <= panDuanJuLi * 2 &&
-                   Math.abs(y - biaoZhu.y) <= panDuanJuLi;
+            // 文字：使用更大的判定区域，与边界框逻辑一致
+            // 测量文字实际尺寸
+            var ctx = biaoZhuZhuangTai.huaBuHuanJing;
+            ctx.font = 'bold ' + (biaoZhu.daXiao || 24) + 'px Arial';
+            var ceLiang = ctx.measureText(biaoZhu.wenBen);
+            var wenZiKuanDu = ceLiang.width;
+            var wenZiGaoDu = biaoZhu.daXiao || 24;
+            
+            // 计算文字的边界框（与放大镜逻辑一致）
+            var wenZiBianJieX = biaoZhu.x;
+            var wenZiBianJieY = biaoZhu.y - wenZiGaoDu;
+            
+            // 扩大判定区域：文字本身 + 较大的判定边距
+            var panDuanBianJu = 40;  // 增加判定距离，方便手指点击
+            
+            return x >= wenZiBianJieX - panDuanBianJu && 
+                   x <= wenZiBianJieX + wenZiKuanDu + panDuanBianJu &&
+                   y >= wenZiBianJieY - panDuanBianJu && 
+                   y <= wenZiBianJieY + wenZiGaoDu + panDuanBianJu;
             
         default:
             return false;
