@@ -23,6 +23,16 @@ var biaoZhuZhuangTai = {
     yiDongQiDian: { x: 0, y: 0 }  // 移动起点
 };
 
+// 放大镜配置
+var fangDaJingPeiZhi = {
+    zhiJing: 120,              // 放大镜直径（像素）
+    anQuanBianJu: 8,           // 安全边距（像素）
+    pianYiLiang: 80,           // 距离手指的偏移量（像素）
+    bianKuangYanSe: '#1890ff', // 边框颜色
+    bianKuangKuanDu: 3,        // 边框宽度
+    xiaoShiYanChi: 300         // 消失延迟（毫秒）
+};
+
 /**
  * 初始化标注界面
  */
@@ -444,6 +454,17 @@ function chuLiYiDongAnXia(e) {
             biaoZhuZhuangTai.yiDongSuoYin = i;
             biaoZhuZhuangTai.yiDongQiDian = { x: x, y: y };
             
+            // ✨ 创建并显示放大镜
+            chuangJianFangDaJing();
+            var fangDaJing = document.getElementById('fangDaJing');
+            if (fangDaJing) {
+                fangDaJing.classList.add('show');
+                
+                // 初始化放大镜内容
+                gengXinFangDaJing(biaoZhu, x, y);
+                gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
+            }
+            
             console.log('开始移动标注：', biaoZhu.leiXing, '索引：', i);
             return;
         }
@@ -621,6 +642,10 @@ function chuLiYiDongYiDong(e) {
 
     // 重新绘制
     chongXinHuiZhiHuaBu();
+    
+    // ✨ 更新放大镜内容和位置
+    gengXinFangDaJing(biaoZhu, x, y);
+    gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
 }
 
 /**
@@ -662,6 +687,9 @@ function chuLiYiDongShiFang() {
     biaoZhuZhuangTai.kaiShiYiDong = false;
     biaoZhuZhuangTai.yiDongBiaoZhu = null;
     biaoZhuZhuangTai.yiDongSuoYin = -1;
+
+    // ✨ 隐藏并销毁放大镜
+    yinCangFangDaJing();
 
     console.log('标注移动完成');
 }
@@ -946,4 +974,305 @@ function wanChengBiaoZhu() {
             jieMian.classList.remove('xianShi');
         }
     }, 'image/png');
+}
+
+/**
+ * 获取标注的边界框
+ * @param {Object} biaoZhu - 标注对象
+ * @returns {Object} { x, y, width, height }
+ */
+function huoQuBiaoZhuBianJieKuang(biaoZhu) {
+    var bianJie = {};
+    
+    switch (biaoZhu.leiXing) {
+        case 'rect':
+            // 矩形：直接使用坐标
+            bianJie.x = Math.min(biaoZhu.x1, biaoZhu.x2);
+            bianJie.y = Math.min(biaoZhu.y1, biaoZhu.y2);
+            bianJie.width = Math.abs(biaoZhu.x2 - biaoZhu.x1);
+            bianJie.height = Math.abs(biaoZhu.y2 - biaoZhu.y1);
+            break;
+            
+        case 'circle':
+            // 圆形：x1,y1是圆心，需要计算半径
+            var banJing = Math.sqrt(
+                Math.pow(biaoZhu.x2 - biaoZhu.x1, 2) +
+                Math.pow(biaoZhu.y2 - biaoZhu.y1, 2)
+            );
+            
+            // 圆形的边界框是外接正方形
+            bianJie.x = biaoZhu.x1 - banJing;
+            bianJie.y = biaoZhu.y1 - banJing;
+            bianJie.width = banJing * 2;
+            bianJie.height = banJing * 2;
+            
+            // 增加边距，确保圆形边框完整显示
+            var yuanXingBianJu = 5;
+            bianJie.x -= yuanXingBianJu;
+            bianJie.y -= yuanXingBianJu;
+            bianJie.width += yuanXingBianJu * 2;
+            bianJie.height += yuanXingBianJu * 2;
+            break;
+            
+        case 'arrow':
+            // 箭头：终点偏置显示方案
+            // 计算箭头长度和方向
+            var dx = biaoZhu.x2 - biaoZhu.x1;
+            var dy = biaoZhu.y2 - biaoZhu.y1;
+            var arrowLength = Math.sqrt(dx * dx + dy * dy);
+            
+            // 归一化方向向量
+            var dirX = dx / arrowLength;
+            var dirY = dy / arrowLength;
+            
+            // 箭头终点（头部）坐标
+            var endX = biaoZhu.x2;
+            var endY = biaoZhu.y2;
+            
+            // 计算截取区域的基础尺寸（会根据实际缩放调整）
+            var baseWidth = Math.max(arrowLength * 0.6, 80);  // 至少显示60%的箭头长度，最小80px
+            var baseHeight = 100;  // 基础高度
+            
+            // 计算放大镜中心位置
+            // 让箭头头部位于放大镜的下1/3处（offset = 高度的1/3）
+            var offset = baseHeight * 0.33;
+            var centerX = endX - dirX * offset;
+            var centerY = endY - dirY * offset;
+            
+            // 设置边界框
+            bianJie.x = centerX - baseWidth / 2;
+            bianJie.y = centerY - baseHeight / 2;
+            bianJie.width = baseWidth;
+            bianJie.height = baseHeight;
+            
+            // 增加边距，确保箭头头部完整显示
+            var jianTouBianJu = 15;
+            bianJie.x -= jianTouBianJu;
+            bianJie.y -= jianTouBianJu;
+            bianJie.width += jianTouBianJu * 2;
+            bianJie.height += jianTouBianJu * 2;
+            
+            console.log('箭头标注 - 长度:', arrowLength.toFixed(0), 
+                       '方向: (' + dirX.toFixed(2) + ', ' + dirY.toFixed(2) + ')',
+                       '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
+            break;
+            
+        case 'text':
+            // 文字：需要估算文字的实际宽高
+            var ctx = biaoZhuZhuangTai.huaBuHuanJing;
+            ctx.font = 'bold ' + (biaoZhu.daXiao || 24) + 'px Arial';
+            var ceLiang = ctx.measureText(biaoZhu.wenBen);
+            
+            bianJie.x = biaoZhu.x;
+            bianJie.y = biaoZhu.y - (biaoZhu.daXiao || 24); // 文字基线调整
+            bianJie.width = ceLiang.width;
+            bianJie.height = biaoZhu.daXiao || 24;
+            
+            // 增加边距
+            var wenZiBianJu = 5;
+            bianJie.x -= wenZiBianJu;
+            bianJie.y -= wenZiBianJu;
+            bianJie.width += wenZiBianJu * 2;
+            bianJie.height += wenZiBianJu * 2;
+            break;
+            
+        default:
+            // 默认情况
+            bianJie.x = 0;
+            bianJie.y = 0;
+            bianJie.width = 50;
+            bianJie.height = 50;
+    }
+    
+    return bianJie;
+}
+
+/**
+ * 计算动态缩放比例
+ * @param {Object} bianJie - 标注边界框
+ * @param {number} fangDaJingZhiJing - 放大镜直径
+ * @param {number} anQuanBianJu - 安全边距
+ * @returns {number} 缩放比例
+ */
+function jiSuanSuoFangBiLi(bianJie, fangDaJingZhiJing, anQuanBianJu) {
+    // 可用显示区域（减去边距）
+    var keYongKuanDu = fangDaJingZhiJing - (anQuanBianJu * 2);
+    var keYongGaoDu = fangDaJingZhiJing - (anQuanBianJu * 2);
+    
+    // 防止除以0
+    if (bianJie.width === 0 || bianJie.height === 0) {
+        return 1;
+    }
+    
+    // 计算宽度和高度的缩放比例
+    var biLiKuan = keYongKuanDu / bianJie.width;
+    var biLiGao = keYongGaoDu / bianJie.height;
+    
+    // 取较小值，确保标注完全显示
+    var suoFangBiLi = Math.min(biLiKuan, biLiGao);
+    
+    console.log('标注尺寸:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
+    console.log('可用区域:', keYongKuanDu.toFixed(0), 'x', keYongGaoDu.toFixed(0));
+    console.log('缩放比例:', suoFangBiLi.toFixed(2), '倍');
+    
+    return suoFangBiLi;
+}
+
+/**
+ * 创建放大镜元素
+ */
+function chuangJianFangDaJing() {
+    // 检查是否已存在
+    if (document.getElementById('fangDaJing')) {
+        return;
+    }
+    
+    // 创建容器
+    var rongQi = document.createElement('div');
+    rongQi.id = 'fangDaJing';
+    rongQi.className = 'magnifier';
+    
+    // 创建画布
+    var canvas = document.createElement('canvas');
+    canvas.id = 'fangDaJingCanvas';
+    
+    rongQi.appendChild(canvas);
+    document.body.appendChild(rongQi);
+    
+    console.log('放大镜已创建');
+}
+
+/**
+ * 更新放大镜内容
+ * @param {Object} biaoZhu - 当前移动的标注
+ * @param {number} shouZhiX - 手指X坐标（Canvas内部坐标）
+ * @param {number} shouZhiY - 手指Y坐标（Canvas内部坐标）
+ */
+function gengXinFangDaJing(biaoZhu, shouZhiX, shouZhiY) {
+    var canvas = document.getElementById('fangDaJingCanvas');
+    if (!canvas) {
+        return;
+    }
+    
+    var ctx = canvas.getContext('2d');
+    
+    // 设置画布实际尺寸（考虑高清屏）
+    var devicePixelRatio = window.devicePixelRatio || 1;
+    var zhiJing = fangDaJingPeiZhi.zhiJing;
+    canvas.width = zhiJing * devicePixelRatio;
+    canvas.height = zhiJing * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    
+    // 清空画布
+    ctx.clearRect(0, 0, zhiJing, zhiJing);
+    
+    // 创建圆形裁剪区域
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(zhiJing / 2, zhiJing / 2, zhiJing / 2, 0, Math.PI * 2);
+    ctx.clip();
+    
+    // 获取标注边界框
+    var bianJie = huoQuBiaoZhuBianJieKuang(biaoZhu);
+    
+    // 计算缩放比例
+    var anQuanBianJu = fangDaJingPeiZhi.anQuanBianJu;
+    var suoFangBiLi = jiSuanSuoFangBiLi(bianJie, zhiJing, anQuanBianJu);
+    
+    // 计算截取区域的中心点（以标注中心为准）
+    var zhongDianX = bianJie.x + bianJie.width / 2;
+    var zhongDianY = bianJie.y + bianJie.height / 2;
+    
+    // 计算截取区域的起始点和尺寸
+    var jieQuKuanDu = zhiJing / suoFangBiLi;
+    var jieQuGaoDu = zhiJing / suoFangBiLi;
+    var jieQuQiDianX = zhongDianX - jieQuKuanDu / 2;
+    var jieQuQiDianY = zhongDianY - jieQuGaoDu / 2;
+    
+    // 边界检查：确保不超出主画布
+    var zhuHuaBu = biaoZhuZhuangTai.huaBu;
+    jieQuQiDianX = Math.max(0, Math.min(jieQuQiDianX, zhuHuaBu.width - jieQuKuanDu));
+    jieQuQiDianY = Math.max(0, Math.min(jieQuQiDianY, zhuHuaBu.height - jieQuGaoDu));
+    
+    // 绘制白色背景
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, zhiJing, zhiJing);
+    
+    // 绘制到放大镜
+    ctx.drawImage(
+        zhuHuaBu,
+        jieQuQiDianX, jieQuQiDianY, jieQuKuanDu, jieQuGaoDu, // 源区域
+        0, 0, zhiJing, zhiJing                               // 目标区域
+    );
+    
+    ctx.restore();
+}
+
+/**
+ * 更新放大镜位置
+ * @param {number} keHuDuanX - 客户端X坐标（屏幕坐标）
+ * @param {number} keHuDuanY - 客户端Y坐标（屏幕坐标）
+ */
+function gengXinFangDaJingWeiZhi(keHuDuanX, keHuDuanY) {
+    var fangDaJing = document.getElementById('fangDaJing');
+    
+    if (!fangDaJing) {
+        return;
+    }
+    
+    var zhiJing = fangDaJingPeiZhi.zhiJing;
+    var pianYiLiang = fangDaJingPeiZhi.pianYiLiang;
+    
+    // 检测屏幕方向
+    var isHengPing = window.innerWidth > window.innerHeight;
+    
+    var weiZhiX, weiZhiY;
+    
+    if (isHengPing) {
+        // 横屏：优先显示在右侧
+        if (keHuDuanX + zhiJing + pianYiLiang < window.innerWidth) {
+            // 右侧有空间
+            weiZhiX = keHuDuanX + pianYiLiang;
+        } else {
+            // 显示在左侧
+            weiZhiX = keHuDuanX - zhiJing - pianYiLiang;
+        }
+        // Y轴居中对齐
+        weiZhiY = keHuDuanY - zhiJing / 2;
+    } else {
+        // 竖屏：显示在上方
+        weiZhiX = keHuDuanX - zhiJing / 2;
+        
+        if (keHuDuanY - zhiJing - pianYiLiang > 0) {
+            // 上方有空间
+            weiZhiY = keHuDuanY - zhiJing - pianYiLiang;
+        } else {
+            // 显示在下方
+            weiZhiY = keHuDuanY + pianYiLiang;
+        }
+    }
+    
+    // 边界保护：确保不超出屏幕
+    weiZhiX = Math.max(10, Math.min(weiZhiX, window.innerWidth - zhiJing - 10));
+    weiZhiY = Math.max(10, Math.min(weiZhiY, window.innerHeight - zhiJing - 10));
+    
+    // 应用位置
+    fangDaJing.style.left = weiZhiX + 'px';
+    fangDaJing.style.top = weiZhiY + 'px';
+}
+
+/**
+ * 隐藏并销毁放大镜
+ */
+function yinCangFangDaJing() {
+    var fangDaJing = document.getElementById('fangDaJing');
+    if (fangDaJing) {
+        fangDaJing.classList.remove('show');
+        // 延迟销毁，避免频繁创建
+        setTimeout(function() {
+            if (fangDaJing.parentNode) {
+                fangDaJing.parentNode.removeChild(fangDaJing);
+            }
+        }, fangDaJingPeiZhi.xiaoShiYanChi);
+    }
 }
