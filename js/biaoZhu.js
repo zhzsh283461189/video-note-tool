@@ -1058,22 +1058,39 @@ function huoQuBiaoZhuBianJieKuang(biaoZhu) {
             break;
             
         case 'text':
-            // 文字：需要估算文字的实际宽高
+            // 文字标注：固定环境区域 + 文字偏置显示方案
+            // 测量文字实际尺寸
             var ctx = biaoZhuZhuangTai.huaBuHuanJing;
             ctx.font = 'bold ' + (biaoZhu.daXiao || 24) + 'px Arial';
             var ceLiang = ctx.measureText(biaoZhu.wenBen);
+            var wenZiKuanDu = ceLiang.width;
+            var wenZiGaoDu = biaoZhu.daXiao || 24;
             
-            bianJie.x = biaoZhu.x;
-            bianJie.y = biaoZhu.y - (biaoZhu.daXiao || 24); // 文字基线调整
-            bianJie.width = ceLiang.width;
-            bianJie.height = biaoZhu.daXiao || 24;
+            // 固定环境区域（四周至少 60px 的环境）
+            var huanJingBianJu = 60;
             
-            // 增加边距
-            var wenZiBianJu = 5;
-            bianJie.x -= wenZiBianJu;
-            bianJie.y -= wenZiBianJu;
-            bianJie.width += wenZiBianJu * 2;
-            bianJie.height += wenZiBianJu * 2;
+            // 计算截取区域的基础尺寸
+            var baseWidth = Math.max(wenZiKuanDu + huanJingBianJu * 2, 150);  // 至少 150px 宽
+            var baseHeight = 130;  // 固定高度，确保足够的环境空间
+            
+            // 让文字位于放大镜的上 1/3 处
+            // 这样下方可以显示更多环境，用户拖动时能看到去向
+            var offset = baseHeight * 0.33;
+            var textCenterX = biaoZhu.x + wenZiKuanDu / 2;
+            var textCenterY = biaoZhu.y - wenZiGaoDu / 2;  // 文字基线调整
+            
+            var centerX = textCenterX;
+            var centerY = textCenterY + offset;  // 向下偏移，让文字在上方
+            
+            // 设置边界框
+            bianJie.x = centerX - baseWidth / 2;
+            bianJie.y = centerY - baseHeight / 2;
+            bianJie.width = baseWidth;
+            bianJie.height = baseHeight;
+            
+            console.log('文字标注 - 固定环境 60px + 文字偏置上 1/3',
+                       '文字尺寸:', wenZiKuanDu.toFixed(0), 'x', wenZiGaoDu.toFixed(0),
+                       '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
             break;
             
         default:
