@@ -131,14 +131,14 @@
     gap: 6px !important;
 }
 
-/* 第4行按钮大小调整：2个按钮一行 */
+/* 第4行按钮大小调整：3个按钮一行 */
 .biaoZhuJieMian.shuPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
-    width: calc((100% - 6px) / 2) !important;
+    width: calc((100% - 12px) / 3) !important;
     min-width: 0 !important;
-    max-width: calc((100% - 6px) / 2) !important;
+    max-width: calc((100% - 12px) / 3) !important;
     height: 30px !important;
     font-size: 16px !important;
-    flex: 0 0 calc((100% - 6px) / 2) !important;
+    flex: 0 0 calc((100% - 12px) / 3) !important;
     border-radius: 5px !important;
     padding: 0 !important;
 }

@@ -1,4 +1,4 @@
- /**
+/**
  * 截图标注功能模块
  * 支持矩形、圆形、箭头、文字标注，以及撤销、取消、完成功能
  */
@@ -20,7 +20,21 @@ var biaoZhuZhuangTai = {
     kaiShiYiDong: false,      // 是否开始移动
     yiDongBiaoZhu: null,      // 当前正在移动的标注
     yiDongSuoYin: -1,         // 正在移动的标注在历史中的索引
-    yiDongQiDian: { x: 0, y: 0 }  // 移动起点
+    yiDongQiDian: { x: 0, y: 0 },  // 移动起点
+    // 缩放功能相关状态
+    suoFangBiLi: 1,           // 当前缩放比例（默认1倍）
+    zuiXiaoSuoFang: 0.5,      // 最小缩放比例（0.5倍）
+    zuiDaSuoFang: 3,          // 最大缩放比例（3倍）
+    kaiShiSuoFang: false,     // 是否正在缩放
+    chuShiJuLi: 0,            // 初始双指距离
+    chuShiSuoFangBiLi: 1,     // 初始缩放比例
+    // 平移功能相关状态
+    pingYiX: 0,               // 当前平移X偏移
+    pingYiY: 0,               // 当前平移Y偏移
+    kaiShiPingYi: false,      // 是否正在平移
+    chuShiPingYiX: 0,         // 初始平移X位置
+    chuShiPingYiY: 0,         // 初始平移Y位置
+    pingYiMoShi: false        // 是否处于平移模式
 };
 
 // 放大镜配置
@@ -77,20 +91,20 @@ function sheZhiMoRenXuanZhong() {
 function daKaiBiaoZhuJieMian(imageData) {
     // 创建图片对象
     var img = new Image();
-    
+
     img.onload = function() {
         console.log('图片加载成功，尺寸：', img.width, 'x', img.height);
-        
+
         // 保存当前图片
         biaoZhuZhuangTai.dangQianTuPian = img;
 
         // 显示标注界面（先显示，再设置画布尺寸）
         var jieMian = document.getElementById('biaoZhuJieMian');
         jieMian.classList.add('xianShi');
-        
+
         // 检测屏幕方向并添加对应类名
         jianCePingMuFangXiang();
-        
+
         // 等待一下让界面渲染完成
         setTimeout(function() {
             // 设置画布尺寸（根据图片比例调整）
@@ -105,12 +119,12 @@ function daKaiBiaoZhuJieMian(imageData) {
             console.log('标注界面已打开');
         }, 100);
     };
-    
+
     img.onerror = function() {
         console.error('图片加载失败');
         xianShiTiShi('❌ 图片加载失败');
     };
-    
+
     img.src = imageData;
 }
 
@@ -121,12 +135,12 @@ function jianCePingMuFangXiang() {
     var jieMian = document.getElementById('biaoZhuJieMian');
     var kuanDu = window.innerWidth;
     var gaoDu = window.innerHeight;
-    
+
     console.log('屏幕尺寸：', kuanDu, 'x', gaoDu);
-    
+
     // 移除旧的方向类名
     jieMian.classList.remove('shuPing', 'hengPing');
-    
+
     // 根据屏幕宽高比判断方向
     if (kuanDu < gaoDu) {
         // 竖屏：宽度 < 高度
@@ -137,7 +151,7 @@ function jianCePingMuFangXiang() {
         jieMian.classList.add('hengPing');
         console.log('检测到横屏模式');
     }
-    
+
     // 如果已经有图片，重新设置画布尺寸
     if (biaoZhuZhuangTai.dangQianTuPian) {
         setTimeout(function() {
@@ -170,20 +184,20 @@ function sheZhiHuaBuChiCun(img) {
 
     // 获取可用空间（留出工具栏的高度）
     var rongQi = document.querySelector('.biaoZhuHuaBuRongQi');
-    
+
     if (!rongQi) {
         console.error('找不到画布容器');
         return;
     }
-    
+
     // 获取容器的实际可用尺寸
     // 使用 window.innerHeight 而不是 clientHeight，以获取准确的可视高度（排除地址栏）
     var jieMian = document.getElementById('biaoZhuJieMian');
     var isHengPing = jieMian.classList.contains('hengPing');
-    
+
     var rongQiKuanDu = rongQi.clientWidth;
     var rongQiGaoDu;
-    
+
     if (isHengPing) {
         // 横屏模式下，使用 window.innerHeight 确保不包含地址栏高度
         // 减去少量边距确保滚动条不出现
@@ -194,17 +208,17 @@ function sheZhiHuaBuChiCun(img) {
     } else {
         rongQiGaoDu = rongQi.clientHeight;
     }
-    
+
     console.log('容器尺寸：', rongQiKuanDu, 'x', rongQiGaoDu);
     console.log('原始图片尺寸：', img.width, 'x', img.height);
 
     // 计算缩放比例 - 让图片尽可能大，但必须完整显示
     var kuanDuBiLi = rongQiKuanDu / img.width;
     var gaoDuBiLi = rongQiGaoDu / img.height;
-    
+
     // 使用较小的缩放比例，确保图片完全显示在容器内
     var suoFangBiLi = Math.min(kuanDuBiLi, gaoDuBiLi);
-    
+
     console.log('宽度比例：', kuanDuBiLi.toFixed(3));
     console.log('高度比例：', gaoDuBiLi.toFixed(3));
     console.log('最终缩放比例：', suoFangBiLi.toFixed(3));
@@ -214,7 +228,7 @@ function sheZhiHuaBuChiCun(img) {
     canvas.height = img.height;
 
     console.log('画布尺寸设置为（原始尺寸）：', canvas.width, 'x', canvas.height);
-    
+
     // 设置画布的CSS样式，让浏览器自动缩放显示
     // 这样画布内部是高分辨率，显示时自动缩小，非常清晰
     // 计算缩放后的显示尺寸
@@ -222,12 +236,12 @@ function sheZhiHuaBuChiCun(img) {
     var bianJu = 2;
     var xianShiKuanDu = (img.width * suoFangBiLi) - (bianJu * 2);
     var xianShiGaoDu = (img.height * suoFangBiLi) - (bianJu * 2);
-    
+
     canvas.style.width = xianShiKuanDu + 'px';
     canvas.style.height = xianShiGaoDu + 'px';
     canvas.style.maxWidth = 'none';
     canvas.style.maxHeight = 'none';
-    
+
     console.log('画布显示尺寸：', xianShiKuanDu.toFixed(0), 'x', xianShiGaoDu.toFixed(0));
 }
 
@@ -356,32 +370,242 @@ function bangDingHuaBuShiJian() {
     // 鼠标离开
     canvas.addEventListener('mouseleave', chuLiHuaBuLiKai);
 
-    // 触摸事件（移动端）
+    // 触摸事件（移动端）- 支持双指缩放和手动平移模式
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        var touch = e.touches[0];
-        var mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        
+        // 检测是否是双指触摸（缩放）
+        if (e.touches.length === 2) {
+            // 开始缩放
+            kaiShiSuoFang(e);
+        } else if (e.touches.length === 1) {
+            var touch = e.touches[0];
+            
+            // 如果处于平移模式，开始平移
+            if (biaoZhuZhuangTai.pingYiMoShi) {
+                kaiShiPingYi(e);
+            } else {
+                // 单指触摸，转换为鼠标事件（绘制或移动标注）
+                var mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            }
+        }
     });
 
     canvas.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var touch = e.touches[0];
-        var mouseEvent = new MouseEvent('mousemove', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        
+        // 检测是否是双指缩放
+        if (e.touches.length === 2 && biaoZhuZhuangTai.kaiShiSuoFang) {
+            // 进行缩放
+            jinXingSuoFang(e);
+        } else if (e.touches.length === 1) {
+            // 如果正在平移
+            if (biaoZhuZhuangTai.kaiShiPingYi) {
+                jinXingPingYi(e);
+            } else {
+                // 单指移动，转换为鼠标事件
+                var touch = e.touches[0];
+                var mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            }
+        }
     });
 
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
-        var mouseEvent = new MouseEvent('mouseup', {});
-        canvas.dispatchEvent(mouseEvent);
+        
+        // 结束平移
+        if (biaoZhuZhuangTai.kaiShiPingYi) {
+            jieShuPingYi();
+        }
+        // 结束缩放
+        if (biaoZhuZhuangTai.kaiShiSuoFang) {
+            jieShuSuoFang();
+        }
+        
+        // 如果没有触摸点了，触发鼠标释放事件
+        if (e.touches.length === 0) {
+            var mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        }
     });
+}
+
+/**
+ * 开始缩放（双指捏合）
+ * @param {TouchEvent} e - 触摸事件
+ */
+function kaiShiSuoFang(e) {
+    var touch1 = e.touches[0];
+    var touch2 = e.touches[1];
+
+    // 计算初始双指距离
+    var dx = touch2.clientX - touch1.clientX;
+    var dy = touch2.clientY - touch1.clientY;
+    biaoZhuZhuangTai.chuShiJuLi = Math.sqrt(dx * dx + dy * dy);
+
+    // 记录当前缩放比例
+    biaoZhuZhuangTai.chuShiSuoFangBiLi = biaoZhuZhuangTai.suoFangBiLi;
+
+    // 标记开始缩放
+    biaoZhuZhuangTai.kaiShiSuoFang = true;
+
+    console.log('开始缩放，初始距离：', biaoZhuZhuangTai.chuShiJuLi);
+}
+
+/**
+ * 进行缩放
+ * @param {TouchEvent} e - 触摸事件
+ */
+function jinXingSuoFang(e) {
+    if (!biaoZhuZhuangTai.kaiShiSuoFang) {
+        return;
+    }
+
+    var touch1 = e.touches[0];
+    var touch2 = e.touches[1];
+
+    // 计算当前双指距离
+    var dx = touch2.clientX - touch1.clientX;
+    var dy = touch2.clientY - touch1.clientY;
+    var muQianJuLi = Math.sqrt(dx * dx + dy * dy);
+
+    // 计算缩放因子
+    var suoFangYinZi = muQianJuLi / biaoZhuZhuangTai.chuShiJuLi;
+
+    // 计算新的缩放比例
+    var xinSuoFangBiLi = biaoZhuZhuangTai.chuShiSuoFangBiLi * suoFangYinZi;
+
+    // 限制缩放范围
+    xinSuoFangBiLi = Math.max(biaoZhuZhuangTai.zuiXiaoSuoFang,
+        Math.min(biaoZhuZhuangTai.zuiDaSuoFang, xinSuoFangBiLi));
+
+    // 更新缩放比例
+    biaoZhuZhuangTai.suoFangBiLi = xinSuoFangBiLi;
+
+    // 应用缩放变换到画布
+    yingYongSuoFang();
+
+    console.log('缩放中，当前比例：', biaoZhuZhuangTai.suoFangBiLi.toFixed(2));
+}
+
+/**
+ * 结束缩放
+ */
+function jieShuSuoFang() {
+    biaoZhuZhuangTai.kaiShiSuoFang = false;
+    console.log('缩放结束，最终比例：', biaoZhuZhuangTai.suoFangBiLi.toFixed(2));
+}
+
+/**
+ * 应用缩放和平移变换到画布
+ */
+function yingYongSuoFang() {
+    var canvas = biaoZhuZhuangTai.huaBu;
+
+    // 使用 CSS transform 进行缩放和平移
+    // 先平移后缩放，以中心点为原点
+    canvas.style.transform = 'scale(' + biaoZhuZhuangTai.suoFangBiLi + ') translate(' +
+        biaoZhuZhuangTai.pingYiX + 'px, ' + biaoZhuZhuangTai.pingYiY + 'px)';
+    canvas.style.transformOrigin = 'center center';
+}
+
+/**
+ * 获取缩放和平移后的实际坐标（考虑手势缩放和平移）
+ * @param {number} clientX - 客户端X坐标
+ * @param {number} clientY - 客户端Y坐标
+ * @returns {Object} 转换后的画布坐标
+ */
+function huoQuSuoFangHouZuoBiao(clientX, clientY) {
+    var canvas = biaoZhuZhuangTai.huaBu;
+    var rect = canvas.getBoundingClientRect();
+
+    // getBoundingClientRect() 已经包含了所有 CSS Transform（缩放、平移）后的最终视觉位置和尺寸
+    // 因此坐标转换公式非常简单：从屏幕坐标直接映射到 Canvas 内部坐标
+    // 这个公式同时适用于缩放、平移以及两者组合的情况
+    var x = (clientX - rect.left) * canvas.width / rect.width;
+    var y = (clientY - rect.top) * canvas.height / rect.height;
+
+    return {
+        x: x,
+        y: y
+    };
+}
+
+/**
+ * 开始平移（三指滑动）
+ * @param {TouchEvent} e - 触摸事件
+ */
+function kaiShiPingYi(e) {
+    // 使用第一个触摸点作为参考点
+    var touch = e.touches[0];
+
+    // 记录初始平移位置
+    biaoZhuZhuangTai.chuShiPingYiX = touch.clientX - biaoZhuZhuangTai.pingYiX * biaoZhuZhuangTai.suoFangBiLi;
+    biaoZhuZhuangTai.chuShiPingYiY = touch.clientY - biaoZhuZhuangTai.pingYiY * biaoZhuZhuangTai.suoFangBiLi;
+
+    // 标记开始平移
+    biaoZhuZhuangTai.kaiShiPingYi = true;
+
+    console.log('开始平移');
+}
+
+/**
+ * 进行平移
+ * @param {TouchEvent} e - 触摸事件
+ */
+function jinXingPingYi(e) {
+    if (!biaoZhuZhuangTai.kaiShiPingYi) {
+        return;
+    }
+
+    // 使用第一个触摸点作为参考点
+    var touch = e.touches[0];
+
+    // 计算平移距离（考虑缩放比例）
+    var pingYiJuLiX = (touch.clientX - biaoZhuZhuangTai.chuShiPingYiX) / biaoZhuZhuangTai.suoFangBiLi;
+    var pingYiJuLiY = (touch.clientY - biaoZhuZhuangTai.chuShiPingYiY) / biaoZhuZhuangTai.suoFangBiLi;
+
+    // 更新平移偏移
+    biaoZhuZhuangTai.pingYiX = pingYiJuLiX;
+    biaoZhuZhuangTai.pingYiY = pingYiJuLiY;
+
+    // 应用变换
+    yingYongSuoFang();
+
+    console.log('平移中：', biaoZhuZhuangTai.pingYiX.toFixed(2), ',', biaoZhuZhuangTai.pingYiY.toFixed(2));
+}
+
+/**
+ * 结束平移
+ */
+function jieShuPingYi() {
+    biaoZhuZhuangTai.kaiShiPingYi = false;
+    console.log('平移结束');
+}
+
+/**
+ * 重置缩放和平移（恢复到初始状态）
+ */
+function chongZhiSuoFang() {
+    biaoZhuZhuangTai.suoFangBiLi = 1;
+    biaoZhuZhuangTai.kaiShiSuoFang = false;
+    biaoZhuZhuangTai.pingYiX = 0;
+    biaoZhuZhuangTai.pingYiY = 0;
+    biaoZhuZhuangTai.kaiShiPingYi = false;
+
+    // 移除CSS变换
+    var canvas = biaoZhuZhuangTai.huaBu;
+    canvas.style.transform = 'none';
+
+    console.log('缩放和平移已重置');
 }
 
 /**
@@ -401,18 +625,14 @@ function chuLiHuaBuAnXia(e) {
         return;
     }
 
-    var canvas = biaoZhuZhuangTai.huaBu;
-    var rect = canvas.getBoundingClientRect();
-    
-    // 计算坐标缩放比例（CSS显示尺寸 -> Canvas内部尺寸）
-    var suoFangBiLiX = canvas.width / rect.width;
-    var suoFangBiLiY = canvas.height / rect.height;
+    // 使用新的坐标转换函数，支持手势缩放
+    var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
 
     // 记录起点（转换为Canvas内部坐标）
     biaoZhuZhuangTai.kaiShiHuiZhi = true;
     biaoZhuZhuangTai.qiDian = {
-        x: (e.clientX - rect.left) * suoFangBiLiX,
-        y: (e.clientY - rect.top) * suoFangBiLiY
+        x: zuBiao.x,
+        y: zuBiao.y
     };
 
     // 创建当前标注对象
@@ -432,20 +652,16 @@ function chuLiHuaBuAnXia(e) {
  * @param {MouseEvent} e - 鼠标事件
  */
 function chuLiYiDongAnXia(e) {
-    var canvas = biaoZhuZhuangTai.huaBu;
-    var rect = canvas.getBoundingClientRect();
-    
-    // 计算坐标缩放比例
-    var suoFangBiLiX = canvas.width / rect.width;
-    var suoFangBiLiY = canvas.height / rect.height;
+    // 使用新的坐标转换函数，支持手势缩放
+    var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
 
-    var x = (e.clientX - rect.left) * suoFangBiLiX;
-    var y = (e.clientY - rect.top) * suoFangBiLiY;
+    var x = zuBiao.x;
+    var y = zuBiao.y;
 
     // 从后往前查找（后绘制的在上面，优先选中）
     for (var i = biaoZhuZhuangTai.biaoZhuLiShi.length - 1; i >= 0; i--) {
         var biaoZhu = biaoZhuZhuangTai.biaoZhuLiShi[i];
-        
+
         // 检查点击位置是否在标注范围内
         if (panDuanBiaoZhuFanWei(biaoZhu, x, y)) {
             // 开始移动这个标注
@@ -453,23 +669,23 @@ function chuLiYiDongAnXia(e) {
             biaoZhuZhuangTai.yiDongBiaoZhu = biaoZhu;
             biaoZhuZhuangTai.yiDongSuoYin = i;
             biaoZhuZhuangTai.yiDongQiDian = { x: x, y: y };
-            
+
             // ✨ 创建并显示放大镜
             chuangJianFangDaJing();
             var fangDaJing = document.getElementById('fangDaJing');
             if (fangDaJing) {
                 fangDaJing.classList.add('show');
-                
+
                 // 初始化放大镜内容
                 gengXinFangDaJing(biaoZhu, x, y);
                 gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
             }
-            
+
             console.log('开始移动标注：', biaoZhu.leiXing, '索引：', i);
             return;
         }
     }
-    
+
     console.log('未点击到任何标注');
 }
 
@@ -482,7 +698,7 @@ function chuLiYiDongAnXia(e) {
  */
 function panDuanBiaoZhuFanWei(biaoZhu, x, y) {
     var panDuanJuLi = 20; // 判定距离（像素）
-    
+
     switch (biaoZhu.leiXing) {
         case 'rect':
             // 矩形：判断是否在矩形边框附近
@@ -490,11 +706,11 @@ function panDuanBiaoZhuFanWei(biaoZhu, x, y) {
             var y1 = Math.min(biaoZhu.y1, biaoZhu.y2);
             var x2 = Math.max(biaoZhu.x1, biaoZhu.x2);
             var y2 = Math.max(biaoZhu.y1, biaoZhu.y2);
-            
+
             // 判断是否在矩形内部或边框附近
             return x >= x1 - panDuanJuLi && x <= x2 + panDuanJuLi &&
-                   y >= y1 - panDuanJuLi && y <= y2 + panDuanJuLi;
-            
+                y >= y1 - panDuanJuLi && y <= y2 + panDuanJuLi;
+
         case 'circle':
             // 圆形：判断是否在圆形范围内
             var banJing = Math.sqrt(
@@ -506,11 +722,11 @@ function panDuanBiaoZhuFanWei(biaoZhu, x, y) {
                 Math.pow(y - biaoZhu.y1, 2)
             );
             return juLi <= banJing + panDuanJuLi;
-            
+
         case 'arrow':
             // 箭头：判断是否在箭头线段附近
             return panDuanDianDaoXianDuanJuLi(x, y, biaoZhu.x1, biaoZhu.y1, biaoZhu.x2, biaoZhu.y2) <= panDuanJuLi;
-            
+
         case 'text':
             // 文字：使用更大的判定区域，与边界框逻辑一致
             // 测量文字实际尺寸
@@ -519,19 +735,19 @@ function panDuanBiaoZhuFanWei(biaoZhu, x, y) {
             var ceLiang = ctx.measureText(biaoZhu.wenBen);
             var wenZiKuanDu = ceLiang.width;
             var wenZiGaoDu = biaoZhu.daXiao || 24;
-            
+
             // 计算文字的边界框（与放大镜逻辑一致）
             var wenZiBianJieX = biaoZhu.x;
             var wenZiBianJieY = biaoZhu.y - wenZiGaoDu;
-            
+
             // 扩大判定区域：文字本身 + 较大的判定边距
             var panDuanBianJu = 40;  // 增加判定距离，方便手指点击
-            
-            return x >= wenZiBianJieX - panDuanBianJu && 
-                   x <= wenZiBianJieX + wenZiKuanDu + panDuanBianJu &&
-                   y >= wenZiBianJieY - panDuanBianJu && 
-                   y <= wenZiBianJieY + wenZiGaoDu + panDuanBianJu;
-            
+
+            return x >= wenZiBianJieX - panDuanBianJu &&
+                x <= wenZiBianJieX + wenZiKuanDu + panDuanBianJu &&
+                y >= wenZiBianJieY - panDuanBianJu &&
+                y <= wenZiBianJieY + wenZiGaoDu + panDuanBianJu;
+
         default:
             return false;
     }
@@ -556,7 +772,7 @@ function panDuanDianDaoXianDuanJuLi(px, py, x1, y1, x2, y2) {
     var dot = A * C + B * D;
     var lenSq = C * C + D * D;
     var param = -1;
-    
+
     if (lenSq !== 0) {
         param = dot / lenSq;
     }
@@ -594,16 +810,12 @@ function chuLiHuaBuYiDong(e) {
         return;
     }
 
-    var canvas = biaoZhuZhuangTai.huaBu;
-    var rect = canvas.getBoundingClientRect();
-    
-    // 计算坐标缩放比例（CSS显示尺寸 -> Canvas内部尺寸）
-    var suoFangBiLiX = canvas.width / rect.width;
-    var suoFangBiLiY = canvas.height / rect.height;
+    // 使用新的坐标转换函数，支持手势缩放
+    var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
 
     // 更新终点（转换为Canvas内部坐标）
-    biaoZhuZhuangTai.dangQianBiaoZhu.x2 = (e.clientX - rect.left) * suoFangBiLiX;
-    biaoZhuZhuangTai.dangQianBiaoZhu.y2 = (e.clientY - rect.top) * suoFangBiLiY;
+    biaoZhuZhuangTai.dangQianBiaoZhu.x2 = zuBiao.x;
+    biaoZhuZhuangTai.dangQianBiaoZhu.y2 = zuBiao.y;
 
     // 重新绘制
     chongXinHuiZhiHuaBu();
@@ -618,15 +830,11 @@ function chuLiYiDongYiDong(e) {
         return;
     }
 
-    var canvas = biaoZhuZhuangTai.huaBu;
-    var rect = canvas.getBoundingClientRect();
-    
-    // 计算坐标缩放比例
-    var suoFangBiLiX = canvas.width / rect.width;
-    var suoFangBiLiY = canvas.height / rect.height;
+    // 使用新的坐标转换函数，支持手势缩放
+    var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
 
-    var x = (e.clientX - rect.left) * suoFangBiLiX;
-    var y = (e.clientY - rect.top) * suoFangBiLiY;
+    var x = zuBiao.x;
+    var y = zuBiao.y;
 
     // 计算移动距离
     var juLiX = x - biaoZhuZhuangTai.yiDongQiDian.x;
@@ -634,7 +842,7 @@ function chuLiYiDongYiDong(e) {
 
     // 更新标注位置
     var biaoZhu = biaoZhuZhuangTai.yiDongBiaoZhu;
-    
+
     switch (biaoZhu.leiXing) {
         case 'rect':
         case 'circle':
@@ -645,7 +853,7 @@ function chuLiYiDongYiDong(e) {
             biaoZhu.x2 += juLiX;
             biaoZhu.y2 += juLiY;
             break;
-            
+
         case 'text':
             // 文字类型有 x, y
             biaoZhu.x += juLiX;
@@ -658,7 +866,7 @@ function chuLiYiDongYiDong(e) {
 
     // 重新绘制
     chongXinHuiZhiHuaBu();
-    
+
     // ✨ 更新放大镜内容和位置
     gengXinFangDaJing(biaoZhu, x, y);
     gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
@@ -728,21 +936,19 @@ function chuLiHuaBuLiKai() {
  */
 function chuangJianWenZiShuRuKuang(e) {
     var canvas = biaoZhuZhuangTai.huaBu;
-    var rect = canvas.getBoundingClientRect();
-    
-    // 计算坐标缩放比例（CSS显示尺寸 -> Canvas内部尺寸）
-    var suoFangBiLiX = canvas.width / rect.width;
-    var suoFangBiLiY = canvas.height / rect.height;
 
-    var x = (e.clientX - rect.left) * suoFangBiLiX;
-    var y = (e.clientY - rect.top) * suoFangBiLiY;
+    // 使用新的坐标转换函数，支持手势缩放
+    var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
+
+    var x = zuBiao.x;
+    var y = zuBiao.y;
 
     // 创建输入框
     var input = document.createElement('input');
     input.type = 'text';
     input.className = 'wenZiShuRuKuang';
-    input.style.left = (rect.left + (e.clientX - rect.left)) + 'px';
-    input.style.top = (rect.top + (e.clientY - rect.top) - 20) + 'px';
+    input.style.left = e.clientX + 'px';
+    input.style.top = (e.clientY - 20) + 'px';
     input.style.display = 'block';
 
     document.body.appendChild(input);
@@ -827,6 +1033,9 @@ function bangDingGongJuLanShiJian() {
     // 撤销按钮
     document.getElementById('btnCheXiao').addEventListener('click', cheXiaoBiaoZhu);
 
+    // 平移画布按钮
+    document.getElementById('btnPingYi').addEventListener('click', qieHuanPingYiMoShi);
+
     // 取消按钮
     document.getElementById('btnQuXiaoBiaoZhu').addEventListener('click', quXiaoBiaoZhu);
 
@@ -846,8 +1055,30 @@ function qieHuanGongJu(gongJu) {
         btn.classList.remove('huoZhong');
     });
     document.querySelector('[data-gongJu="' + gongJu + '"]').classList.add('huoZhong');
+    
+    // 切换到其他工具时，退出平移模式
+    biaoZhuZhuangTai.pingYiMoShi = false;
+    document.getElementById('btnPingYi').classList.remove('huoZhong');
 
     console.log('切换到工具：', gongJu);
+}
+
+/**
+ * 切换平移画布模式
+ */
+function qieHuanPingYiMoShi() {
+    // 切换平移模式状态
+    biaoZhuZhuangTai.pingYiMoShi = !biaoZhuZhuangTai.pingYiMoShi;
+    
+    // 更新按钮状态
+    var btn = document.getElementById('btnPingYi');
+    if (biaoZhuZhuangTai.pingYiMoShi) {
+        btn.classList.add('huoZhong');
+        console.log('进入平移模式');
+    } else {
+        btn.classList.remove('huoZhong');
+        console.log('退出平移模式');
+    }
 }
 
 /**
@@ -939,6 +1170,9 @@ function quXiaoBiaoZhu() {
 function wanChengBiaoZhu() {
     var canvas = biaoZhuZhuangTai.huaBu;
 
+    // 重置缩放，确保导出的图片是原始尺寸
+    chongZhiSuoFang();
+
     // 将画布转为 Base64 图片
     var imageData = canvas.toDataURL('image/png');
 
@@ -957,7 +1191,7 @@ function wanChengBiaoZhu() {
             navigator.clipboard.write([item]).then(function() {
                 xianShiTiShi('✓ 截图已保存，可点击“插入截图”按钮插入笔记');
                 console.log('截图已保存并复制到剪贴板');
-                
+
                 // 清空标注历史
                 biaoZhuZhuangTai.biaoZhuLiShi = [];
                 biaoZhuZhuangTai.dangQianBiaoZhu = null;
@@ -968,7 +1202,7 @@ function wanChengBiaoZhu() {
             }).catch(function(err) {
                 console.error('复制到剪贴板失败：', err);
                 xianShiTiShi('✓ 截图已保存，可点击“插入截图”按钮插入笔记');
-                
+
                 // 清空标注历史
                 biaoZhuZhuangTai.biaoZhuLiShi = [];
                 biaoZhuZhuangTai.dangQianBiaoZhu = null;
@@ -980,7 +1214,7 @@ function wanChengBiaoZhu() {
         } else {
             // 降级方案：只保存到 LocalStorage
             xianShiTiShi('✓ 截图已保存，可点击“插入截图”按钮插入笔记');
-            
+
             // 清空标注历史
             biaoZhuZhuangTai.biaoZhuLiShi = [];
             biaoZhuZhuangTai.dangQianBiaoZhu = null;
@@ -999,7 +1233,7 @@ function wanChengBiaoZhu() {
  */
 function huoQuBiaoZhuBianJieKuang(biaoZhu) {
     var bianJie = {};
-    
+
     switch (biaoZhu.leiXing) {
         case 'rect':
             // 矩形：直接使用坐标
@@ -1008,20 +1242,20 @@ function huoQuBiaoZhuBianJieKuang(biaoZhu) {
             bianJie.width = Math.abs(biaoZhu.x2 - biaoZhu.x1);
             bianJie.height = Math.abs(biaoZhu.y2 - biaoZhu.y1);
             break;
-            
+
         case 'circle':
             // 圆形：x1,y1是圆心，需要计算半径
             var banJing = Math.sqrt(
                 Math.pow(biaoZhu.x2 - biaoZhu.x1, 2) +
                 Math.pow(biaoZhu.y2 - biaoZhu.y1, 2)
             );
-            
+
             // 圆形的边界框是外接正方形
             bianJie.x = biaoZhu.x1 - banJing;
             bianJie.y = biaoZhu.y1 - banJing;
             bianJie.width = banJing * 2;
             bianJie.height = banJing * 2;
-            
+
             // 增加边距，确保圆形边框完整显示
             var yuanXingBianJu = 5;
             bianJie.x -= yuanXingBianJu;
@@ -1029,50 +1263,50 @@ function huoQuBiaoZhuBianJieKuang(biaoZhu) {
             bianJie.width += yuanXingBianJu * 2;
             bianJie.height += yuanXingBianJu * 2;
             break;
-            
+
         case 'arrow':
             // 箭头：终点偏置显示方案
             // 计算箭头长度和方向
             var dx = biaoZhu.x2 - biaoZhu.x1;
             var dy = biaoZhu.y2 - biaoZhu.y1;
             var arrowLength = Math.sqrt(dx * dx + dy * dy);
-            
+
             // 归一化方向向量
             var dirX = dx / arrowLength;
             var dirY = dy / arrowLength;
-            
+
             // 箭头终点（头部）坐标
             var endX = biaoZhu.x2;
             var endY = biaoZhu.y2;
-            
+
             // 计算截取区域的基础尺寸（会根据实际缩放调整）
             var baseWidth = Math.max(arrowLength * 0.6, 80);  // 至少显示60%的箭头长度，最小80px
             var baseHeight = 100;  // 基础高度
-            
+
             // 计算放大镜中心位置
             // 让箭头头部位于放大镜的下1/3处（offset = 高度的1/3）
             var offset = baseHeight * 0.33;
             var centerX = endX - dirX * offset;
             var centerY = endY - dirY * offset;
-            
+
             // 设置边界框
             bianJie.x = centerX - baseWidth / 2;
             bianJie.y = centerY - baseHeight / 2;
             bianJie.width = baseWidth;
             bianJie.height = baseHeight;
-            
+
             // 增加边距，确保箭头头部完整显示
             var jianTouBianJu = 15;
             bianJie.x -= jianTouBianJu;
             bianJie.y -= jianTouBianJu;
             bianJie.width += jianTouBianJu * 2;
             bianJie.height += jianTouBianJu * 2;
-            
-            console.log('箭头标注 - 长度:', arrowLength.toFixed(0), 
-                       '方向: (' + dirX.toFixed(2) + ', ' + dirY.toFixed(2) + ')',
-                       '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
+
+            console.log('箭头标注 - 长度:', arrowLength.toFixed(0),
+                '方向: (' + dirX.toFixed(2) + ', ' + dirY.toFixed(2) + ')',
+                '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
             break;
-            
+
         case 'text':
             // 文字标注：固定环境区域 + 文字偏置显示方案
             // 测量文字实际尺寸
@@ -1081,34 +1315,34 @@ function huoQuBiaoZhuBianJieKuang(biaoZhu) {
             var ceLiang = ctx.measureText(biaoZhu.wenBen);
             var wenZiKuanDu = ceLiang.width;
             var wenZiGaoDu = biaoZhu.daXiao || 24;
-            
+
             // 固定环境区域（四周至少 60px 的环境）
             var huanJingBianJu = 60;
-            
+
             // 计算截取区域的基础尺寸
             var baseWidth = Math.max(wenZiKuanDu + huanJingBianJu * 2, 150);  // 至少 150px 宽
             var baseHeight = 130;  // 固定高度，确保足够的环境空间
-            
+
             // 让文字位于放大镜的上 1/3 处
             // 这样下方可以显示更多环境，用户拖动时能看到去向
             var offset = baseHeight * 0.33;
             var textCenterX = biaoZhu.x + wenZiKuanDu / 2;
             var textCenterY = biaoZhu.y - wenZiGaoDu / 2;  // 文字基线调整
-            
+
             var centerX = textCenterX;
             var centerY = textCenterY + offset;  // 向下偏移，让文字在上方
-            
+
             // 设置边界框
             bianJie.x = centerX - baseWidth / 2;
             bianJie.y = centerY - baseHeight / 2;
             bianJie.width = baseWidth;
             bianJie.height = baseHeight;
-            
+
             console.log('文字标注 - 固定环境 60px + 文字偏置上 1/3',
-                       '文字尺寸:', wenZiKuanDu.toFixed(0), 'x', wenZiGaoDu.toFixed(0),
-                       '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
+                '文字尺寸:', wenZiKuanDu.toFixed(0), 'x', wenZiGaoDu.toFixed(0),
+                '边界框:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
             break;
-            
+
         default:
             // 默认情况
             bianJie.x = 0;
@@ -1116,7 +1350,7 @@ function huoQuBiaoZhuBianJieKuang(biaoZhu) {
             bianJie.width = 50;
             bianJie.height = 50;
     }
-    
+
     return bianJie;
 }
 
@@ -1131,23 +1365,23 @@ function jiSuanSuoFangBiLi(bianJie, fangDaJingZhiJing, anQuanBianJu) {
     // 可用显示区域（减去边距）
     var keYongKuanDu = fangDaJingZhiJing - (anQuanBianJu * 2);
     var keYongGaoDu = fangDaJingZhiJing - (anQuanBianJu * 2);
-    
+
     // 防止除以0
     if (bianJie.width === 0 || bianJie.height === 0) {
         return 1;
     }
-    
+
     // 计算宽度和高度的缩放比例
     var biLiKuan = keYongKuanDu / bianJie.width;
     var biLiGao = keYongGaoDu / bianJie.height;
-    
+
     // 取较小值，确保标注完全显示
     var suoFangBiLi = Math.min(biLiKuan, biLiGao);
-    
+
     console.log('标注尺寸:', bianJie.width.toFixed(0), 'x', bianJie.height.toFixed(0));
     console.log('可用区域:', keYongKuanDu.toFixed(0), 'x', keYongGaoDu.toFixed(0));
     console.log('缩放比例:', suoFangBiLi.toFixed(2), '倍');
-    
+
     return suoFangBiLi;
 }
 
@@ -1159,19 +1393,19 @@ function chuangJianFangDaJing() {
     if (document.getElementById('fangDaJing')) {
         return;
     }
-    
+
     // 创建容器
     var rongQi = document.createElement('div');
     rongQi.id = 'fangDaJing';
     rongQi.className = 'magnifier';
-    
+
     // 创建画布
     var canvas = document.createElement('canvas');
     canvas.id = 'fangDaJingCanvas';
-    
+
     rongQi.appendChild(canvas);
     document.body.appendChild(rongQi);
-    
+
     console.log('放大镜已创建');
 }
 
@@ -1186,58 +1420,58 @@ function gengXinFangDaJing(biaoZhu, shouZhiX, shouZhiY) {
     if (!canvas) {
         return;
     }
-    
+
     var ctx = canvas.getContext('2d');
-    
+
     // 设置画布实际尺寸（考虑高清屏）
     var devicePixelRatio = window.devicePixelRatio || 1;
     var zhiJing = fangDaJingPeiZhi.zhiJing;
     canvas.width = zhiJing * devicePixelRatio;
     canvas.height = zhiJing * devicePixelRatio;
     ctx.scale(devicePixelRatio, devicePixelRatio);
-    
+
     // 清空画布
     ctx.clearRect(0, 0, zhiJing, zhiJing);
-    
+
     // 创建圆形裁剪区域
     ctx.save();
     ctx.beginPath();
     ctx.arc(zhiJing / 2, zhiJing / 2, zhiJing / 2, 0, Math.PI * 2);
     ctx.clip();
-    
+
     // 获取标注边界框
     var bianJie = huoQuBiaoZhuBianJieKuang(biaoZhu);
-    
+
     // 计算缩放比例
     var anQuanBianJu = fangDaJingPeiZhi.anQuanBianJu;
     var suoFangBiLi = jiSuanSuoFangBiLi(bianJie, zhiJing, anQuanBianJu);
-    
+
     // 计算截取区域的中心点（以标注中心为准）
     var zhongDianX = bianJie.x + bianJie.width / 2;
     var zhongDianY = bianJie.y + bianJie.height / 2;
-    
+
     // 计算截取区域的起始点和尺寸
     var jieQuKuanDu = zhiJing / suoFangBiLi;
     var jieQuGaoDu = zhiJing / suoFangBiLi;
     var jieQuQiDianX = zhongDianX - jieQuKuanDu / 2;
     var jieQuQiDianY = zhongDianY - jieQuGaoDu / 2;
-    
+
     // 边界检查：确保不超出主画布
     var zhuHuaBu = biaoZhuZhuangTai.huaBu;
     jieQuQiDianX = Math.max(0, Math.min(jieQuQiDianX, zhuHuaBu.width - jieQuKuanDu));
     jieQuQiDianY = Math.max(0, Math.min(jieQuQiDianY, zhuHuaBu.height - jieQuGaoDu));
-    
+
     // 绘制白色背景
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, zhiJing, zhiJing);
-    
+
     // 绘制到放大镜
     ctx.drawImage(
         zhuHuaBu,
         jieQuQiDianX, jieQuQiDianY, jieQuKuanDu, jieQuGaoDu, // 源区域
         0, 0, zhiJing, zhiJing                               // 目标区域
     );
-    
+
     ctx.restore();
 }
 
@@ -1248,19 +1482,19 @@ function gengXinFangDaJing(biaoZhu, shouZhiX, shouZhiY) {
  */
 function gengXinFangDaJingWeiZhi(keHuDuanX, keHuDuanY) {
     var fangDaJing = document.getElementById('fangDaJing');
-    
+
     if (!fangDaJing) {
         return;
     }
-    
+
     var zhiJing = fangDaJingPeiZhi.zhiJing;
     var pianYiLiang = fangDaJingPeiZhi.pianYiLiang;
-    
+
     // 检测屏幕方向
     var isHengPing = window.innerWidth > window.innerHeight;
-    
+
     var weiZhiX, weiZhiY;
-    
+
     if (isHengPing) {
         // 横屏：优先显示在右侧
         if (keHuDuanX + zhiJing + pianYiLiang < window.innerWidth) {
@@ -1275,7 +1509,7 @@ function gengXinFangDaJingWeiZhi(keHuDuanX, keHuDuanY) {
     } else {
         // 竖屏：显示在上方
         weiZhiX = keHuDuanX - zhiJing / 2;
-        
+
         if (keHuDuanY - zhiJing - pianYiLiang > 0) {
             // 上方有空间
             weiZhiY = keHuDuanY - zhiJing - pianYiLiang;
@@ -1284,11 +1518,11 @@ function gengXinFangDaJingWeiZhi(keHuDuanX, keHuDuanY) {
             weiZhiY = keHuDuanY + pianYiLiang;
         }
     }
-    
+
     // 边界保护：确保不超出屏幕
     weiZhiX = Math.max(10, Math.min(weiZhiX, window.innerWidth - zhiJing - 10));
     weiZhiY = Math.max(10, Math.min(weiZhiY, window.innerHeight - zhiJing - 10));
-    
+
     // 应用位置
     fangDaJing.style.left = weiZhiX + 'px';
     fangDaJing.style.top = weiZhiY + 'px';
