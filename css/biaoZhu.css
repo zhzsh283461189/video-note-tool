@@ -124,21 +124,21 @@
     padding: 0 !important;
 }
 
-/* 竖屏第4行：移动工具和撤销（2个按钮） */
+/* 竖屏第4行：移动工具和撤销（2个按钮，占满整行） */
 .biaoZhuJieMian.shuPing .gongJuZuCaoZuoGongJu {
     width: 100% !important;
-    justify-content: center !important;
+    justify-content: stretch !important;
     gap: 6px !important;
 }
 
-/* 第4行按钮大小调整：3个按钮一行 */
+/* 第4行按钮大小调整：2个按钮平均占满整行，字体稍大更协调 */
 .biaoZhuJieMian.shuPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
-    width: calc((100% - 12px) / 3) !important;
+    width: calc((100% - 6px) / 2) !important;
     min-width: 0 !important;
-    max-width: calc((100% - 12px) / 3) !important;
+    max-width: calc((100% - 6px) / 2) !important;
     height: 30px !important;
     font-size: 16px !important;
-    flex: 0 0 calc((100% - 12px) / 3) !important;
+    flex: 1 1 calc((100% - 6px) / 2) !important;
     border-radius: 5px !important;
     padding: 0 !important;
 }
@@ -269,16 +269,17 @@
     padding: 2px 0 !important;
 }
 
-/* 横屏第4行：移动工具和撤销 */
+/* 横屏第4行：移动工具和撤销（2个按钮，占满整行） */
 .biaoZhuJieMian.hengPing .gongJuZuCaoZuoGongJu {
     width: 100% !important;
-    justify-content: center !important;
+    justify-content: stretch !important;
     gap: 8px !important;
 }
 
-/* 第四行按钮高度减半 */
+/* 第四行按钮：2个按钮平均占满整行 */
 .biaoZhuJieMian.hengPing .gongJuZuCaoZuoGongJu .gongJuAnNiu {
-    aspect-ratio: 2 / 1 !important;
+    flex: 1 1 auto !important;
+    aspect-ratio: 3 / 1 !important;
 }
 
 /* 横屏第5-6行：颜色按钮（8个分两行显示） */

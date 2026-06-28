@@ -21,20 +21,25 @@ var biaoZhuZhuangTai = {
     yiDongBiaoZhu: null,      // 当前正在移动的标注
     yiDongSuoYin: -1,         // 正在移动的标注在历史中的索引
     yiDongQiDian: { x: 0, y: 0 },  // 移动起点
-    // 缩放功能相关状态
+    // 双指缩放+平移功能相关状态
     suoFangBiLi: 1,           // 当前缩放比例（默认1倍）
     zuiXiaoSuoFang: 0.5,      // 最小缩放比例（0.5倍）
     zuiDaSuoFang: 3,          // 最大缩放比例（3倍）
-    kaiShiSuoFang: false,     // 是否正在缩放
+    kaiShiSuoFang: false,     // 是否正在缩放/平移
     chuShiJuLi: 0,            // 初始双指距离
     chuShiSuoFangBiLi: 1,     // 初始缩放比例
-    // 平移功能相关状态
+    chuShiPingYiZhongDianX: 0, // 双指初始中心点X
+    chuShiPingYiZhongDianY: 0, // 双指初始中心点Y
     pingYiX: 0,               // 当前平移X偏移
     pingYiY: 0,               // 当前平移Y偏移
-    kaiShiPingYi: false,      // 是否正在平移
-    chuShiPingYiX: 0,         // 初始平移X位置
-    chuShiPingYiY: 0,         // 初始平移Y位置
-    pingYiMoShi: false        // 是否处于平移模式
+    chuShiPingYiX: 0,         // 画布初始平移X（缩放/平移开始时记录）
+    chuShiPingYiY: 0,         // 画布初始平移Y（缩放/平移开始时记录）
+    // 绘制过程中调整起手位置相关状态
+    kaiShiHuiZhiTiaoZheng: false,  // 是否正在调整绘制起手位置（双指平移模式）
+    tiaoZhengChuShiZhongDianX: 0,  // 调整开始时双指中心点X（屏幕坐标）
+    tiaoZhengChuShiZhongDianY: 0,  // 调整开始时双指中心点Y（屏幕坐标）
+    // 手势冲突检测：记录开始绘制/移动的时间，用于判断第二根手指加入的意图
+    kaiShiHuiZhiShiJian: 0         // 开始绘制的时间戳（ms），用于判断是"缩放"还是"调整位置"
 };
 
 // 放大镜配置
@@ -370,68 +375,113 @@ function bangDingHuaBuShiJian() {
     // 鼠标离开
     canvas.addEventListener('mouseleave', chuLiHuaBuLiKai);
 
-    // 触摸事件（移动端）- 支持双指缩放和手动平移模式
+    // 触摸事件（移动端）- 支持双指缩放、手动平移模式、绘制过程中调整起手位置
+    // ★ 优先级设计：用"时间差"判断用户意图，避免双指操作与单指操作的冲突
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        
-        // 检测是否是双指触摸（缩放）
-        if (e.touches.length === 2) {
-            // 开始缩放
-            kaiShiSuoFang(e);
-        } else if (e.touches.length === 1) {
-            var touch = e.touches[0];
-            
-            // 如果处于平移模式，开始平移
-            if (biaoZhuZhuangTai.pingYiMoShi) {
-                kaiShiPingYi(e);
-            } else {
-                // 单指触摸，转换为鼠标事件（绘制或移动标注）
-                var mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
+
+        // ===== 1. 双指操作时：用"绘制已进行时间"判断用户意图 =====
+        if (e.touches.length >= 2) {
+            var xianZaiShiJian = Date.now();
+            var huiZhiYiJinXingShiJian = xianZaiShiJian - biaoZhuZhuangTai.kaiShiHuiZhiShiJian;
+
+            // --- 场景A：已在绘制中超过200ms → 用户想微调位置（绘制调整模式）---
+            if (biaoZhuZhuangTai.kaiShiHuiZhi && biaoZhuZhuangTai.dangQianBiaoZhu &&
+                biaoZhuZhuangTai.kaiShiHuiZhiShiJian > 0 && huiZhiYiJinXingShiJian > 200) {
+                kaiShiHuiZhiTiaoZheng(e);
+                return;
             }
+
+            // --- 场景B：其他情况 → 用户想缩放画布 ---
+            // （包括：刚开始绘制、没有在绘制、正在移动标注、之前就在调整模式等）
+            // 回退：如果之前因单指而开始了绘制，取消它
+            if (biaoZhuZhuangTai.kaiShiHuiZhi) {
+                biaoZhuZhuangTai.kaiShiHuiZhi = false;
+                biaoZhuZhuangTai.kaiShiHuiZhiShiJian = 0;
+                biaoZhuZhuangTai.dangQianBiaoZhu = null;
+
+                // ✨ 回退绘制时，隐藏放大镜
+                yinCangFangDaJing();
+
+                console.log('【手势冲突】检测到双指缩放，回退已开始的绘制（已进行', huiZhiYiJinXingShiJian, 'ms）');
+            }
+            // 回退：如果之前因单指而开始了移动标注，取消它
+            if (biaoZhuZhuangTai.kaiShiYiDong) {
+                biaoZhuZhuangTai.kaiShiYiDong = false;
+                biaoZhuZhuangTai.yiDongBiaoZhu = null;
+                biaoZhuZhuangTai.yiDongSuoYin = -1;
+                console.log('【手势冲突】检测到双指缩放，回退已开始的标注移动');
+            }
+            // 回退：如果之前在"绘制调整模式"，也先退出
+            if (biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng) {
+                biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng = false;
+            }
+
+            // 统一进入双指缩放模式
+            kaiShiSuoFang(e);
+            return;
+        }
+
+        // ===== 2. 正常单指操作（绘制或移动标注） =====
+        if (e.touches.length === 1) {
+            var touch = e.touches[0];
+
+            // 单指触摸，转换为鼠标事件（绘制或移动标注）
+            var mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
         }
     });
 
     canvas.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        
-        // 检测是否是双指缩放
-        if (e.touches.length === 2 && biaoZhuZhuangTai.kaiShiSuoFang) {
-            // 进行缩放
+
+        // 双指缩放+平移（最高优先级）
+        if (e.touches.length >= 2 && biaoZhuZhuangTai.kaiShiSuoFang) {
             jinXingSuoFang(e);
-        } else if (e.touches.length === 1) {
-            // 如果正在平移
-            if (biaoZhuZhuangTai.kaiShiPingYi) {
-                jinXingPingYi(e);
-            } else {
-                // 单指移动，转换为鼠标事件
-                var touch = e.touches[0];
-                var mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                canvas.dispatchEvent(mouseEvent);
-            }
+            return;
+        }
+
+        // 【功能】绘制过程中调整起手位置：正在调整模式下，双指移动则整体平移图形
+        // 注意：只有当不是缩放模式且是2根手指时才进入
+        if (biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng && e.touches.length === 2 && !biaoZhuZhuangTai.kaiShiSuoFang) {
+            jinXingHuiZhiTiaoZheng(e);
+            return;
+        }
+
+        // 单指移动：不在缩放/调整模式时，才转为鼠标事件（绘制或移动标注）
+        if (e.touches.length === 1 && !biaoZhuZhuangTai.kaiShiSuoFang && !biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng) {
+            var touch = e.touches[0];
+            var mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
         }
     });
 
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
-        
-        // 结束平移
-        if (biaoZhuZhuangTai.kaiShiPingYi) {
-            jieShuPingYi();
-        }
-        // 结束缩放
+
+        // 结束缩放（优先级最高）
         if (biaoZhuZhuangTai.kaiShiSuoFang) {
             jieShuSuoFang();
+            // 缩放结束后，如果还有手指留在屏幕（e.touches.length >= 1），
+            // 不做任何操作，让用户抬起所有手指后再重新开始，避免连续触发绘制
         }
-        
-        // 如果没有触摸点了，触发鼠标释放事件
-        if (e.touches.length === 0) {
+
+        // 【功能】绘制过程中调整起手位置：结束调整
+        if (biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng) {
+            jieShuHuiZhiTiaoZheng();
+            // 调整结束后可能还有手指在屏幕上，继续正常处理
+        }
+
+        // ★ 只有当完全没有手指了（e.touches.length === 0），并且不是刚从缩放模式退出时，
+        // 才触发鼠标释放事件，结束绘制或移动标注。
+        // 这是关键：避免缩放时"手指B抬起"触发 mouseup，导致意外完成绘制。
+        if (e.touches.length === 0 && !biaoZhuZhuangTai.kaiShiSuoFang) {
             var mouseEvent = new MouseEvent('mouseup', {});
             canvas.dispatchEvent(mouseEvent);
         }
@@ -446,7 +496,7 @@ function kaiShiSuoFang(e) {
     var touch1 = e.touches[0];
     var touch2 = e.touches[1];
 
-    // 计算初始双指距离
+    // 计算初始双指距离（用于缩放）
     var dx = touch2.clientX - touch1.clientX;
     var dy = touch2.clientY - touch1.clientY;
     biaoZhuZhuangTai.chuShiJuLi = Math.sqrt(dx * dx + dy * dy);
@@ -454,10 +504,19 @@ function kaiShiSuoFang(e) {
     // 记录当前缩放比例
     biaoZhuZhuangTai.chuShiSuoFangBiLi = biaoZhuZhuangTai.suoFangBiLi;
 
+    // ✨ 记录双指初始中心点（用于平移画布）
+    biaoZhuZhuangTai.chuShiPingYiZhongDianX = (touch1.clientX + touch2.clientX) / 2;
+    biaoZhuZhuangTai.chuShiPingYiZhongDianY = (touch1.clientY + touch2.clientY) / 2;
+
+    // ✨ 记录画布当前平移偏移（作为平移的起点）
+    biaoZhuZhuangTai.chuShiPingYiX = biaoZhuZhuangTai.pingYiX;
+    biaoZhuZhuangTai.chuShiPingYiY = biaoZhuZhuangTai.pingYiY;
+
     // 标记开始缩放
     biaoZhuZhuangTai.kaiShiSuoFang = true;
 
-    console.log('开始缩放，初始距离：', biaoZhuZhuangTai.chuShiJuLi);
+    console.log('开始缩放+平移，初始距离：', biaoZhuZhuangTai.chuShiJuLi.toFixed(0),
+        '，初始中心点：', biaoZhuZhuangTai.chuShiPingYiZhongDianX.toFixed(0), biaoZhuZhuangTai.chuShiPingYiZhongDianY.toFixed(0));
 }
 
 /**
@@ -472,28 +531,38 @@ function jinXingSuoFang(e) {
     var touch1 = e.touches[0];
     var touch2 = e.touches[1];
 
-    // 计算当前双指距离
+    // =============== 缩放：两指距离变化 ===============
     var dx = touch2.clientX - touch1.clientX;
     var dy = touch2.clientY - touch1.clientY;
     var muQianJuLi = Math.sqrt(dx * dx + dy * dy);
 
-    // 计算缩放因子
     var suoFangYinZi = muQianJuLi / biaoZhuZhuangTai.chuShiJuLi;
-
-    // 计算新的缩放比例
     var xinSuoFangBiLi = biaoZhuZhuangTai.chuShiSuoFangBiLi * suoFangYinZi;
 
-    // 限制缩放范围
     xinSuoFangBiLi = Math.max(biaoZhuZhuangTai.zuiXiaoSuoFang,
         Math.min(biaoZhuZhuangTai.zuiDaSuoFang, xinSuoFangBiLi));
 
-    // 更新缩放比例
     biaoZhuZhuangTai.suoFangBiLi = xinSuoFangBiLi;
 
-    // 应用缩放变换到画布
+    // ✨ =============== 平移：双指中心点移动 ===============
+    // 计算当前双指中心点
+    var xinZhongDianX = (touch1.clientX + touch2.clientX) / 2;
+    var xinZhongDianY = (touch1.clientY + touch2.clientY) / 2;
+
+    // 中心点的移动距离（屏幕像素）→ 直接加到画布平移偏移上
+    // 注意：CSS transform 的 translate 值就是屏幕像素，所以不需要额外换算
+    var zhongDianYiDongX = xinZhongDianX - biaoZhuZhuangTai.chuShiPingYiZhongDianX;
+    var zhongDianYiDongY = xinZhongDianY - biaoZhuZhuangTai.chuShiPingYiZhongDianY;
+
+    // 应用中心点移动到画布平移（加上初始平移偏移）
+    biaoZhuZhuangTai.pingYiX = biaoZhuZhuangTai.chuShiPingYiX + zhongDianYiDongX / biaoZhuZhuangTai.suoFangBiLi;
+    biaoZhuZhuangTai.pingYiY = biaoZhuZhuangTai.chuShiPingYiY + zhongDianYiDongY / biaoZhuZhuangTai.suoFangBiLi;
+
+    // 应用缩放+平移变换到画布
     yingYongSuoFang();
 
-    console.log('缩放中，当前比例：', biaoZhuZhuangTai.suoFangBiLi.toFixed(2));
+    console.log('缩放+平移中，比例：', biaoZhuZhuangTai.suoFangBiLi.toFixed(2),
+        '，偏移：', biaoZhuZhuangTai.pingYiX.toFixed(0), biaoZhuZhuangTai.pingYiY.toFixed(0));
 }
 
 /**
@@ -540,58 +609,6 @@ function huoQuSuoFangHouZuoBiao(clientX, clientY) {
 }
 
 /**
- * 开始平移（三指滑动）
- * @param {TouchEvent} e - 触摸事件
- */
-function kaiShiPingYi(e) {
-    // 使用第一个触摸点作为参考点
-    var touch = e.touches[0];
-
-    // 记录初始平移位置
-    biaoZhuZhuangTai.chuShiPingYiX = touch.clientX - biaoZhuZhuangTai.pingYiX * biaoZhuZhuangTai.suoFangBiLi;
-    biaoZhuZhuangTai.chuShiPingYiY = touch.clientY - biaoZhuZhuangTai.pingYiY * biaoZhuZhuangTai.suoFangBiLi;
-
-    // 标记开始平移
-    biaoZhuZhuangTai.kaiShiPingYi = true;
-
-    console.log('开始平移');
-}
-
-/**
- * 进行平移
- * @param {TouchEvent} e - 触摸事件
- */
-function jinXingPingYi(e) {
-    if (!biaoZhuZhuangTai.kaiShiPingYi) {
-        return;
-    }
-
-    // 使用第一个触摸点作为参考点
-    var touch = e.touches[0];
-
-    // 计算平移距离（考虑缩放比例）
-    var pingYiJuLiX = (touch.clientX - biaoZhuZhuangTai.chuShiPingYiX) / biaoZhuZhuangTai.suoFangBiLi;
-    var pingYiJuLiY = (touch.clientY - biaoZhuZhuangTai.chuShiPingYiY) / biaoZhuZhuangTai.suoFangBiLi;
-
-    // 更新平移偏移
-    biaoZhuZhuangTai.pingYiX = pingYiJuLiX;
-    biaoZhuZhuangTai.pingYiY = pingYiJuLiY;
-
-    // 应用变换
-    yingYongSuoFang();
-
-    console.log('平移中：', biaoZhuZhuangTai.pingYiX.toFixed(2), ',', biaoZhuZhuangTai.pingYiY.toFixed(2));
-}
-
-/**
- * 结束平移
- */
-function jieShuPingYi() {
-    biaoZhuZhuangTai.kaiShiPingYi = false;
-    console.log('平移结束');
-}
-
-/**
  * 重置缩放和平移（恢复到初始状态）
  */
 function chongZhiSuoFang() {
@@ -599,13 +616,114 @@ function chongZhiSuoFang() {
     biaoZhuZhuangTai.kaiShiSuoFang = false;
     biaoZhuZhuangTai.pingYiX = 0;
     biaoZhuZhuangTai.pingYiY = 0;
-    biaoZhuZhuangTai.kaiShiPingYi = false;
 
     // 移除CSS变换
     var canvas = biaoZhuZhuangTai.huaBu;
     canvas.style.transform = 'none';
 
     console.log('缩放和平移已重置');
+}
+
+/**
+ * 【新功能】开始绘制过程中调整起手位置（双指平移模式）
+ * 当正在绘制图形时，第二根手指加入，进入"调整位置模式"
+ * 整个图形将跟随双指中心点整体平移，从而修正起手位置
+ * @param {TouchEvent} e - 触摸事件（包含2个触摸点）
+ */
+function kaiShiHuiZhiTiaoZheng(e) {
+    // 计算双指中心点（屏幕坐标）
+    var zhongDianX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    var zhongDianY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+    // 记录调整开始时的状态
+    biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng = true;
+    biaoZhuZhuangTai.tiaoZhengChuShiZhongDianX = zhongDianX;
+    biaoZhuZhuangTai.tiaoZhengChuShiZhongDianY = zhongDianY;
+
+    // ✨ 双指调整起手位置时，暂时隐藏放大镜
+    yinCangFangDaJing();
+
+    console.log('【绘制调整】开始调整起手位置，初始中心点：', zhongDianX.toFixed(0), zhongDianY.toFixed(0));
+}
+
+/**
+ * 【新功能】绘制过程中进行位置调整（双指移动时整体平移图形）
+ * 根据双指中心点的移动距离，整体平移图形的起点和终点
+ * @param {TouchEvent} e - 触摸事件（包含2个触摸点）
+ */
+function jinXingHuiZhiTiaoZheng(e) {
+    if (!biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng || !biaoZhuZhuangTai.dangQianBiaoZhu) {
+        return;
+    }
+
+    // 计算新的双指中心点（屏幕坐标）
+    var xinZhongDianX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    var xinZhongDianY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+    // 计算中心点移动距离（屏幕坐标）
+    var yiDongX = xinZhongDianX - biaoZhuZhuangTai.tiaoZhengChuShiZhongDianX;
+    var yiDongY = xinZhongDianY - biaoZhuZhuangTai.tiaoZhengChuShiZhongDianY;
+
+    // 将屏幕坐标偏移量转换为 Canvas 内部坐标偏移量
+    // 使用 huoQuSuoFangHouZuoBiao 函数的逆逻辑：
+    // 屏幕坐标的1像素对应 Canvas 内部坐标的 (canvas.width / rect.width) 像素
+    // 实际上，我们可以直接对起点和终点的屏幕坐标进行偏移，再转换回来
+    // 但由于当前标注已经是 Canvas 内部坐标，我们需要计算偏移的 Canvas 内部值
+    var canvas = biaoZhuZhuangTai.huaBu;
+    var rect = canvas.getBoundingClientRect();
+    var canvasNeiBuYiDongX = yiDongX * canvas.width / rect.width;
+    var canvasNeiBuYiDongY = yiDongY * canvas.height / rect.height;
+
+    // 整体平移当前标注：同时移动起点和终点
+    var biaoZhu = biaoZhuZhuangTai.dangQianBiaoZhu;
+    biaoZhu.x1 += canvasNeiBuYiDongX;
+    biaoZhu.y1 += canvasNeiBuYiDongY;
+    biaoZhu.x2 += canvasNeiBuYiDongX;
+    biaoZhu.y2 += canvasNeiBuYiDongY;
+
+    // 同时更新全局起点坐标（qiDian），确保后续绘制使用新的起点
+    biaoZhuZhuangTai.qiDian.x += canvasNeiBuYiDongX;
+    biaoZhuZhuangTai.qiDian.y += canvasNeiBuYiDongY;
+
+    // 更新调整中心点（为下一次移动做准备）
+    biaoZhuZhuangTai.tiaoZhengChuShiZhongDianX = xinZhongDianX;
+    biaoZhuZhuangTai.tiaoZhengChuShiZhongDianY = xinZhongDianY;
+
+    // 重新绘制画布（显示平移后的图形预览）
+    chongXinHuiZhiHuaBu();
+
+    console.log('【绘制调整】平移中：', canvasNeiBuYiDongX.toFixed(1), canvasNeiBuYiDongY.toFixed(1),
+                '新起点：', biaoZhu.x1.toFixed(0), biaoZhu.y1.toFixed(0));
+}
+
+/**
+ * 【新功能】结束绘制过程中的位置调整（手指B抬起时）
+ * 退出调整模式，保持绘制状态（手指A仍在，可继续绘制）
+ */
+function jieShuHuiZhiTiaoZheng() {
+    if (!biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng) {
+        return;
+    }
+
+    // 退出调整模式
+    biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng = false;
+
+    // ✨ 调整完成，继续绘制时重新显示放大镜
+    if (biaoZhuZhuangTai.kaiShiHuiZhi && biaoZhuZhuangTai.dangQianBiaoZhu) {
+        chuangJianFangDaJing();
+        var fangDaJing = document.getElementById('fangDaJing');
+        if (fangDaJing) {
+            fangDaJing.classList.add('show');
+
+            // 重新初始化放大镜内容（显示当前标注中心点）
+            var biaoZhu = biaoZhuZhuangTai.dangQianBiaoZhu;
+            var zhongX = (biaoZhu.x1 + biaoZhu.x2) / 2;
+            var zhongY = (biaoZhu.y1 + biaoZhu.y2) / 2;
+            gengXinFangDaJing(biaoZhu, zhongX, zhongY);
+        }
+    }
+
+    console.log('【绘制调整】调整结束，继续绘制');
 }
 
 /**
@@ -628,8 +746,9 @@ function chuLiHuaBuAnXia(e) {
     // 使用新的坐标转换函数，支持手势缩放
     var zuBiao = huoQuSuoFangHouZuoBiao(e.clientX, e.clientY);
 
-    // 记录起点（转换为Canvas内部坐标）
+    // 记录起点（转换为Canvas内部坐标）+ 记录开始绘制时间（用于手势冲突检测）
     biaoZhuZhuangTai.kaiShiHuiZhi = true;
+    biaoZhuZhuangTai.kaiShiHuiZhiShiJian = Date.now();
     biaoZhuZhuangTai.qiDian = {
         x: zuBiao.x,
         y: zuBiao.y
@@ -645,6 +764,17 @@ function chuLiHuaBuAnXia(e) {
         yanSe: biaoZhuZhuangTai.dangQianYanSe,
         kuanDu: biaoZhuZhuangTai.xianTiaoKuanDu
     };
+
+    // ✨ 创建并显示放大镜（与平移标注功能一致）
+    chuangJianFangDaJing();
+    var fangDaJing = document.getElementById('fangDaJing');
+    if (fangDaJing) {
+        fangDaJing.classList.add('show');
+
+        // 初始化放大镜内容（显示当前手指位置的区域）
+        gengXinFangDaJing(biaoZhuZhuangTai.dangQianBiaoZhu, zuBiao.x, zuBiao.y);
+        gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
+    }
 }
 
 /**
@@ -819,6 +949,12 @@ function chuLiHuaBuYiDong(e) {
 
     // 重新绘制
     chongXinHuiZhiHuaBu();
+
+    // ✨ 更新放大镜内容和位置（仅在非调整模式时显示）
+    if (!biaoZhuZhuangTai.kaiShiHuiZhiTiaoZheng) {
+        gengXinFangDaJing(biaoZhuZhuangTai.dangQianBiaoZhu, zuBiao.x, zuBiao.y);
+        gengXinFangDaJingWeiZhi(e.clientX, e.clientY);
+    }
 }
 
 /**
@@ -886,14 +1022,18 @@ function chuLiHuaBuShiFang() {
         return;
     }
 
-    // 结束绘制
+    // 结束绘制（重置时间戳，供下次手势冲突检测使用）
     biaoZhuZhuangTai.kaiShiHuiZhi = false;
+    biaoZhuZhuangTai.kaiShiHuiZhiShiJian = 0;
 
     // 将当前标注添加到历史记录
     if (biaoZhuZhuangTai.dangQianBiaoZhu) {
         biaoZhuZhuangTai.biaoZhuLiShi.push(biaoZhuZhuangTai.dangQianBiaoZhu);
         biaoZhuZhuangTai.dangQianBiaoZhu = null;
     }
+
+    // ✨ 隐藏并销毁放大镜
+    yinCangFangDaJing();
 
     // 重新绘制
     chongXinHuiZhiHuaBu();
@@ -922,10 +1062,15 @@ function chuLiYiDongShiFang() {
  * 处理画布离开事件
  */
 function chuLiHuaBuLiKai() {
-    // 如果正在绘制，取消当前标注
+    // 如果正在绘制，取消当前标注（重置时间戳，供下次手势冲突检测使用）
     if (biaoZhuZhuangTai.kaiShiHuiZhi) {
         biaoZhuZhuangTai.kaiShiHuiZhi = false;
+        biaoZhuZhuangTai.kaiShiHuiZhiShiJian = 0;
         biaoZhuZhuangTai.dangQianBiaoZhu = null;
+
+        // ✨ 隐藏并销毁放大镜
+        yinCangFangDaJing();
+
         chongXinHuiZhiHuaBu();
     }
 }
@@ -1033,9 +1178,6 @@ function bangDingGongJuLanShiJian() {
     // 撤销按钮
     document.getElementById('btnCheXiao').addEventListener('click', cheXiaoBiaoZhu);
 
-    // 平移画布按钮
-    document.getElementById('btnPingYi').addEventListener('click', qieHuanPingYiMoShi);
-
     // 取消按钮
     document.getElementById('btnQuXiaoBiaoZhu').addEventListener('click', quXiaoBiaoZhu);
 
@@ -1055,30 +1197,8 @@ function qieHuanGongJu(gongJu) {
         btn.classList.remove('huoZhong');
     });
     document.querySelector('[data-gongJu="' + gongJu + '"]').classList.add('huoZhong');
-    
-    // 切换到其他工具时，退出平移模式
-    biaoZhuZhuangTai.pingYiMoShi = false;
-    document.getElementById('btnPingYi').classList.remove('huoZhong');
 
     console.log('切换到工具：', gongJu);
-}
-
-/**
- * 切换平移画布模式
- */
-function qieHuanPingYiMoShi() {
-    // 切换平移模式状态
-    biaoZhuZhuangTai.pingYiMoShi = !biaoZhuZhuangTai.pingYiMoShi;
-    
-    // 更新按钮状态
-    var btn = document.getElementById('btnPingYi');
-    if (biaoZhuZhuangTai.pingYiMoShi) {
-        btn.classList.add('huoZhong');
-        console.log('进入平移模式');
-    } else {
-        btn.classList.remove('huoZhong');
-        console.log('退出平移模式');
-    }
 }
 
 /**
